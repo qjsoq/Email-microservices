@@ -13,7 +13,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
-    private final WebClient webClient;
+    private final WebClient.Builder webClientBuilder;
     //private final EmailService emailService;
     //private final MailBoxRepository mailBoxRepository;
 
@@ -32,12 +32,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public MailBox addAccount(MailBox mailBox, String login) {
-        var user = userRepository.findByLoginIgnoreCase(login);
+        System.out.println("I am here4");
+        User user = userRepository.findByLoginIgnoreCase(login);
+        System.out.println("I am here 3");
         mailBox.setUser(user);
-        user.getUserEmails().add(mailBox);
-        userRepository.save(user);
-        return webClient.post()
-                .uri("http://localhost:8083//api/v1/send/config")
+        System.out.println("before userrepository");
+        System.out.println("after userrepository");
+        return webClientBuilder.build().post()
+                .uri("http://smtp-service/api/v1/email/config")
                 .bodyValue(mailBox)
                 .retrieve()
                 .bodyToMono(MailBox.class)

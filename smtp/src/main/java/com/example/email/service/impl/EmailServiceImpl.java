@@ -40,12 +40,14 @@ public class EmailServiceImpl implements EmailService {
     }
     @Override
     public MailBox addEmailConfiguration(MailBox mailBox) {
+        System.out.println("I am here 2");
         String domainPart = getEmailDomain(mailBox.getEmailAddress());
         Optional<EmailConfiguration> appropriateConfig =
                 Arrays.stream(EmailConfiguration.values())
                         .filter(config -> config.getDomainName().equalsIgnoreCase(domainPart))
                         .findFirst();
         if (appropriateConfig.isPresent()) {
+            System.out.println("I am here 1");
             mailBox.setEmailConfiguration(appropriateConfig.get());
             mailBoxRepository.save(mailBox);
             return mailBox;

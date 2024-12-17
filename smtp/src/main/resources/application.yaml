@@ -1,6 +1,6 @@
 spring:
   application:
-    name: email
+    name: smtp-service
   datasource:
     url: jdbc:mysql://localhost:3306/mail-db
     username: root
@@ -11,4 +11,8 @@ spring:
     hibernate:
       ddl-auto: update
 server:
-  port: 8083
+  port: 0
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: "http://localhost:8761/eureka"
