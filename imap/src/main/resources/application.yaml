@@ -1,0 +1,14 @@
+spring:
+    application:
+        name: imap
+    datasource:
+        url: jdbc:mysql://localhost:3306/mail-db
+        username: root
+        password: mailbox
+    jpa:
+        generate-ddl: true
+        show-sql: true
+        hibernate:
+            ddl-auto: update
+server:
+    port: 8081
