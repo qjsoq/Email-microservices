@@ -19,6 +19,7 @@
         <module>discovery-server</module>
         <module>smtp</module>
         <module>user</module>
+        <module>api-gateway</module>
     </modules>
 
     <url/>

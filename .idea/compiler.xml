@@ -18,6 +18,7 @@
           <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.5.3.Final/mapstruct-processor-1.5.3.Final.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct/1.5.3.Final/mapstruct-1.5.3.Final.jar" />
         </processorPath>
+        <module name="api-gateway" />
         <module name="imap" />
         <module name="discovery-server" />
         <module name="smtp" />
@@ -30,6 +31,7 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="api-gateway" options="-parameters -Amapstruct.defaultComponentModel=spring" />
       <module name="discovery-server" options="-parameters -Amapstruct.defaultComponentModel=spring" />
       <module name="email-microservices" options="-parameters -Amapstruct.defaultComponentModel=spring" />
       <module name="email-moicroservices" options="-parameters" />
