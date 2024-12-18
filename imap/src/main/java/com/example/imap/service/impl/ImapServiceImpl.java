@@ -76,9 +76,8 @@ public class ImapServiceImpl implements ImapService {
         }
     }
 
-    private Store getImapStore(String account) throws Exception {
-        var mailbox = mailBoxRepository.findByEmailAddress(account).orElseThrow(
-                () -> new RuntimeException("Mailbox not found for account: " + account));
+    private Store getImapStore(String account, String login) throws Exception {
+        var mailbox = mailBoxRepository.findByEmailAddressAndUserLogin(account, login).get();
         var imapConfig = mailbox.getEmailConfiguration();
         setProperties(imapConfig.getImapHost());
         Session session = Session.getInstance(imapProperties);
@@ -100,9 +99,9 @@ public class ImapServiceImpl implements ImapService {
 
 
     @Override
-    public Message[] getEmails(String account, String folderName) throws Exception {
-
-        Store store = getImapStore(account);
+    public Message[] getEmails(String account, String folderName, String login) throws Exception {
+        isUserAllowedToReadEmail(login, account);
+        Store store = getImapStore(account, login);
         Folder folder = getFolderFromStore(store, folderName, Folder.READ_ONLY);
         int messageCount = folder.getMessageCount();
         if (messageCount == 0) {
@@ -116,8 +115,8 @@ public class ImapServiceImpl implements ImapService {
         return messages;
     }
 
-    private Message getEmail(String account, String folderName, int msgnum) throws Exception {
-        Store store = getImapStore(account);
+    private Message getEmail(String account, String folderName, int msgnum, String login) throws Exception {
+        Store store = getImapStore(account, login);
         Folder folder = getFolderFromStore(store, folderName, Folder.READ_WRITE);
         var message = folder.getMessage(msgnum);
         message.setFlag(Flags.Flag.SEEN, true);
@@ -125,9 +124,10 @@ public class ImapServiceImpl implements ImapService {
     }
 
     @Override
-    public DetailedReceivedEmail getSpecificEmail(String account, String folderName, int msgnum)
+    public DetailedReceivedEmail getSpecificEmail(String account, String folderName, int msgnum, String login)
             throws Exception {
-        Message message = getEmail(account, folderName, msgnum);
+        isUserAllowedToReadEmail(login, account);
+        Message message = getEmail(account, folderName, msgnum, login);
         Address[] fromAddresses = message.getFrom();
         String senderEmail = null;
         if (fromAddresses != null && fromAddresses.length > 0) {
@@ -156,8 +156,8 @@ public class ImapServiceImpl implements ImapService {
 
     @Override
     public void moveEmail(String account, String sourceFolder, String destinationFolder,
-                          int msgnum) throws Exception {
-        Store store = getImapStore(account);
+                          int msgnum, String login) throws Exception {
+        Store store = getImapStore(account, login);
         Folder source = getFolderFromStore(store, sourceFolder, Folder.READ_WRITE);
         Message[] messages = new Message[] {source.getMessage(msgnum)};
 
@@ -168,8 +168,8 @@ public class ImapServiceImpl implements ImapService {
     }
 
     @Override
-    public boolean createFolder(String folderName, String account) throws Exception {
-        Store store = getImapStore(account);
+    public boolean createFolder(String folderName, String account, String login) throws Exception {
+        Store store = getImapStore(account, login);
         Folder newFolder = store.getFolder(folderName);
         if (!newFolder.exists()) {
             if (newFolder.create(Folder.HOLDS_MESSAGES)) {
@@ -196,6 +196,9 @@ public class ImapServiceImpl implements ImapService {
         return message.getContent().toString();
     }
 
+    private void isUserAllowedToReadEmail(String login, String account){
+        mailBoxRepository.findByEmailAddressAndUserLogin(account, login).orElseThrow(() -> new RuntimeException("this is not your email"));
+    }
     public String getTextFromMimeMultipart(
             MimeMultipart mimeMultipart) throws MessagingException, IOException {
         String result = "";

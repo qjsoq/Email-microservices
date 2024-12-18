@@ -55,6 +55,6 @@ public class AuthController {
 
     @GetMapping("/validate-token/{token}")
     public ResponseEntity<User> validateToken(@PathVariable String token) {
-        return ResponseEntity.ok(userService.validateToken(token));
+        return ResponseEntity.ok(userService.validateToken2(token));
     }
 }

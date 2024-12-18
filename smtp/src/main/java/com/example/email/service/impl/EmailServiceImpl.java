@@ -34,9 +34,17 @@ public class EmailServiceImpl implements EmailService {
     private SendStrategy sendStrategy;
 
     @Override
-    public Email sendEmail(Email email) throws MessagingException, UnsupportedEncodingException {
+    public Email sendEmail(Email email, String login) throws MessagingException, UnsupportedEncodingException {
+        var mailBox = mailBoxRepository.findByEmailAddressAndUserLogin(email.getSenderEmail(), login)
+                .orElseThrow(RuntimeException::new);
+        System.out.println(mailBox.getUser().getLogin());
+        System.out.println(login);
+        System.out.println(mailBox.getUser().getLogin().equals(login));
+        if(!mailBox.getUser().getLogin().equals(login)){
+            throw new RuntimeException("You have not add this email");
+        }
         specifyStrategy(email.getSenderEmail());
-        return sendStrategy.sendWithStrategyEmail(email);
+        return sendStrategy.sendWithStrategyEmail(email, mailBox);
     }
     @Override
     public MailBox addEmailConfiguration(MailBox mailBox) {
@@ -56,11 +64,14 @@ public class EmailServiceImpl implements EmailService {
     }
 
     private void checkIfMailBoxExist(String emailAddress, String login) {
-        boolean exists = mailBoxRepository.existsByEmailAddressAndUserLogin(emailAddress, login);
-        if (exists) {
-            throw new RuntimeException("This email address has already been added for this user.");
+        var mailbox = mailBoxRepository.findByEmailAddressAndUserLogin(emailAddress, login);
+        if (mailbox.isPresent()){
+            throw new RuntimeException("Email box is already used");
         }
+
     }
+
+
     private String getEmailDomain(String emailAddress) {
         Pattern pattern = Pattern.compile("(?<=@)[^.]+(?=\\.)");
         Matcher matcher = pattern.matcher(emailAddress);

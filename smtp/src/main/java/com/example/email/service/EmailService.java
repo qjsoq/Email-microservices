@@ -10,7 +10,7 @@ import java.io.UnsupportedEncodingException;
 
 public interface EmailService {
 
-    Email sendEmail(Email email) throws MessagingException, UnsupportedEncodingException;
+    Email sendEmail(Email email, String login) throws MessagingException, UnsupportedEncodingException;
 
 
     MailBox addEmailConfiguration(MailBox mailBox);

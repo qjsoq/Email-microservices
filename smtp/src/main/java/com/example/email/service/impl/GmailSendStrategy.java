@@ -2,6 +2,7 @@ package com.example.email.service.impl;
 
 
 import com.example.email.domain.Email;
+import com.example.email.domain.MailBox;
 import com.example.email.repository.MailBoxRepository;
 import com.example.email.service.SendStrategy;
 import com.sun.mail.smtp.SMTPTransport;
@@ -30,9 +31,7 @@ public class GmailSendStrategy implements SendStrategy {
     }
 
     @Override
-    public Email sendWithStrategyEmail(Email email) throws MessagingException, UnsupportedEncodingException {
-        var mailBox = mailBoxRepository.findByEmailAddress(email.getSenderEmail())
-                .orElseThrow(RuntimeException::new);
+    public Email sendWithStrategyEmail(Email email, MailBox mailBox) throws MessagingException, UnsupportedEncodingException {
         var configs = mailBox.getEmailConfiguration();
 
         // Initialize the JavaMail session

@@ -2,6 +2,7 @@ package com.example.email.service.impl;
 
 
 import com.example.email.domain.Email;
+import com.example.email.domain.MailBox;
 import com.example.email.repository.MailBoxRepository;
 import com.example.email.service.SendStrategy;
 import jakarta.mail.Message;
@@ -29,12 +30,8 @@ public class UkrNetSendStrategy implements SendStrategy {
     }
 
     @Override
-    public Email sendWithStrategyEmail(Email email)
+    public Email sendWithStrategyEmail(Email email, MailBox mailBox)
             throws MessagingException, UnsupportedEncodingException {
-        var mailBox = mailBoxRepository.findByEmailAddress(email.getSenderEmail())
-                .orElseThrow(RuntimeException::new);
-
-
         Session session = Session.getInstance(props, new jakarta.mail.Authenticator() {
             @Override
             protected jakarta.mail.PasswordAuthentication getPasswordAuthentication() {

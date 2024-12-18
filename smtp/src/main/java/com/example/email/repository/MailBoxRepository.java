@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MailBoxRepository extends JpaRepository<MailBox, Integer> {
     Optional<MailBox> findByEmailAddress(String email);
-    boolean existsByEmailAddressAndUserLogin(String emailAddress, String login);
+    Optional<MailBox> findByEmailAddressAndUserLogin(String emailAddress, String login);
 
 }

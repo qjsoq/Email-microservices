@@ -1,6 +1,7 @@
 package com.example.user.service.impl;
 
 
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.user.domain.MailBox;
 import com.example.user.domain.User;
@@ -10,6 +11,8 @@ import com.example.user.service.UserService;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,11 +55,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<MailBox> getMailBoxes(String login) {
-        String url = String.format( "http://imap/api/v1/read/%s/mailbox", login);
-
+        String url = "http://imap/api/v1/read/mailbox";
+        String decodedJWT = jwtTokenProvider.generateToken(userRepository.findByLoginIgnoreCase(login).get());
         return webClientBuilder.build()
                 .get()
                 .uri(url)
+                .header("Authorization", "Bearer " + decodedJWT) // Add token to Authorization header
                 .retrieve()
                 .bodyToFlux(MailBox.class) // Deserialize response to Flux<MailBox>
                 .collectList() // Convert Flux<MailBox> to List<MailBox>
@@ -67,6 +71,21 @@ public class UserServiceImpl implements UserService {
     public User validateToken(String presentToken) {
         String login = jwtTokenProvider.getLoginFromToken(presentToken);
         return userRepository.findByLoginIgnoreCase(login).orElseThrow(RuntimeException::new);
+    }
+
+    @Override
+    public User validateToken2(String token) {
+        User user = null;
+        try {
+            Optional<DecodedJWT> decodedJwt = jwtTokenProvider.decodedJwt(token);
+            if (decodedJwt.isPresent()) {
+                String email = jwtTokenProvider.getLoginFromToken(token);
+                user =  userRepository.findByLoginIgnoreCase(email).orElseThrow(() -> new RuntimeException("User not found"));
+            }
+        } catch (JWTVerificationException e) {
+            throw new RuntimeException("Token is Invalid");
+        }
+        return user;
     }
 
 
