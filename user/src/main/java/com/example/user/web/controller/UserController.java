@@ -2,16 +2,20 @@ package com.example.user.web.controller;
 
 
 import com.example.user.common.HttpResponse;
+import com.example.user.domain.MailBox;
 import com.example.user.service.UserService;
 import com.example.user.web.dto.mailbox.MailBoxCreation;
 import com.example.user.web.mapper.MailBoxMapper;
 import com.example.user.web.mapper.UserMapper;
 import java.net.URI;
+import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,10 +30,16 @@ public class UserController {
     private final UserMapper userMapper;
     private final MailBoxMapper mailBoxMapper;
 
-    @PostMapping("/add-account/{login}")
+    @GetMapping("/mailbox")
+    public ResponseEntity<List<MailBox>> getMailBoxes(Principal principal) {
+        var mailBoxes = userService.getMailBoxes(principal.getName());
+        return ResponseEntity.ok(mailBoxes);
+    }
+
+    @PostMapping("/add-account")
     public ResponseEntity<HttpResponse> addAccount(@RequestBody MailBoxCreation mailBoxCreation,
-                                                   @PathVariable String login) {
-        var mailBox = userService.addAccount(mailBoxMapper.toMailBox(mailBoxCreation), login);
+                                                   Principal principal) {
+        var mailBox = userService.addAccount(mailBoxMapper.toMailBox(mailBoxCreation), principal.getName());
         return ResponseEntity.created(URI.create("")).body(HttpResponse.builder()
                 .httpStatus(HttpStatus.CREATED)
                 .code(201)

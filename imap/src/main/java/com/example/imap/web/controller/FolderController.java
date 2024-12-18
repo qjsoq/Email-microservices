@@ -3,6 +3,7 @@ package com.example.imap.web.controller;
 
 import com.example.imap.domain.HttpResponse;
 import com.example.imap.service.ImapService;
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +21,9 @@ public class FolderController {
     private final ImapService imapService;
     @PostMapping("/{account}/{folderName}")
     public ResponseEntity<HttpResponse> createFolder(@PathVariable String account,
-                                                     @PathVariable String folderName)
+                                                     @PathVariable String folderName, Principal principal)
             throws Exception {
-        imapService.createFolder(folderName, account);
+        imapService.createFolder(folderName, account, principal.getName());
         return ResponseEntity.ok(HttpResponse.builder()
                 .httpStatus(HttpStatus.OK)
                 .code(200)
@@ -36,9 +37,10 @@ public class FolderController {
                                                           @PathVariable String sourceFolder,
                                                           @PathVariable
                                                           String destinationFolderName,
-                                                          @PathVariable int msgnum)
+                                                          @PathVariable int msgnum, Principal principal)
             throws Exception {
-        imapService.moveEmail(account, sourceFolder, destinationFolderName, msgnum);
+        imapService.moveEmail(account, sourceFolder, destinationFolderName, msgnum,
+                principal.getName());
         return ResponseEntity.ok(HttpResponse.builder().build());
     }
 }

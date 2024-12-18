@@ -1,19 +1,32 @@
 package com.example.user.service.impl;
 
 
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.user.domain.MailBox;
 import com.example.user.domain.User;
 import com.example.user.repository.UserRepository;
+import com.example.user.security.JwtTokenProvider;
 import com.example.user.service.UserService;
+import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
-    private final WebClient webClient;
+    private final WebClient.Builder webClientBuilder;
+    private final PasswordEncoder encoder;
+    private final JwtTokenProvider jwtTokenProvider;
+
+
     //private final EmailService emailService;
     //private final MailBoxRepository mailBoxRepository;
 
@@ -23,21 +36,65 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Email already exists");
         }
         user.setEnable(false);
-        user.setPassword(user.getPassword());
+        user.setPassword(encoder.encode(user.getPassword()));
         userRepository.save(user);
+        return user;
+    }
+    @Override
+    @Transactional
+    public Optional<DecodedJWT> signIn(String login, String password) {
+        var user = userRepository.findByLoginIgnoreCase(login).orElseThrow(() -> new RuntimeException(
+                "User with email %s doesn`t exist".formatted(login)
+        ));
+        if (!encoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Invalid password");
+        }
+        var token = jwtTokenProvider.generateToken(user);
+        return jwtTokenProvider.decodedJwt(token);
+    }
+
+    @Override
+    public List<MailBox> getMailBoxes(String login) {
+        String url = "http://imap/api/v1/read/mailbox";
+        String decodedJWT = jwtTokenProvider.generateToken(userRepository.findByLoginIgnoreCase(login).get());
+        return webClientBuilder.build()
+                .get()
+                .uri(url)
+                .header("Authorization", "Bearer " + decodedJWT) // Add token to Authorization header
+                .retrieve()
+                .bodyToFlux(MailBox.class) // Deserialize response to Flux<MailBox>
+                .collectList() // Convert Flux<MailBox> to List<MailBox>
+                .block(); // Block to wait for the result (avoid in reactive programming unless necessary)
+    }
+
+    @Override
+    public User validateToken(String presentToken) {
+        String login = jwtTokenProvider.getLoginFromToken(presentToken);
+        return userRepository.findByLoginIgnoreCase(login).orElseThrow(RuntimeException::new);
+    }
+
+    @Override
+    public User validateToken2(String token) {
+        User user = null;
+        try {
+            Optional<DecodedJWT> decodedJwt = jwtTokenProvider.decodedJwt(token);
+            if (decodedJwt.isPresent()) {
+                String email = jwtTokenProvider.getLoginFromToken(token);
+                user =  userRepository.findByLoginIgnoreCase(email).orElseThrow(() -> new RuntimeException("User not found"));
+            }
+        } catch (JWTVerificationException e) {
+            throw new RuntimeException("Token is Invalid");
+        }
         return user;
     }
 
 
-
     @Override
     public MailBox addAccount(MailBox mailBox, String login) {
-        var user = userRepository.findByLoginIgnoreCase(login);
+        User user = userRepository.findByLoginIgnoreCase(login).orElseThrow(RuntimeException::new);
         mailBox.setUser(user);
-        user.getUserEmails().add(mailBox);
-        userRepository.save(user);
-        return webClient.post()
-                .uri("http://localhost:8083//api/v1/send/config")
+        return webClientBuilder.build().post()
+                .uri("http://smtp-service/api/v1/email/config")
                 .bodyValue(mailBox)
                 .retrieve()
                 .bodyToMono(MailBox.class)

@@ -34,24 +34,43 @@ public class EmailServiceImpl implements EmailService {
     private SendStrategy sendStrategy;
 
     @Override
-    public Email sendEmail(Email email) throws MessagingException, UnsupportedEncodingException {
+    public Email sendEmail(Email email, String login) throws MessagingException, UnsupportedEncodingException {
+        var mailBox = mailBoxRepository.findByEmailAddressAndUserLogin(email.getSenderEmail(), login)
+                .orElseThrow(RuntimeException::new);
+        System.out.println(mailBox.getUser().getLogin());
+        System.out.println(login);
+        System.out.println(mailBox.getUser().getLogin().equals(login));
+        if(!mailBox.getUser().getLogin().equals(login)){
+            throw new RuntimeException("You have not add this email");
+        }
         specifyStrategy(email.getSenderEmail());
-        return sendStrategy.sendWithStrategyEmail(email);
+        return sendStrategy.sendWithStrategyEmail(email, mailBox);
     }
     @Override
     public MailBox addEmailConfiguration(MailBox mailBox) {
+        checkIfMailBoxExist(mailBox.getEmailAddress(), mailBox.getUser().getLogin());
         String domainPart = getEmailDomain(mailBox.getEmailAddress());
         Optional<EmailConfiguration> appropriateConfig =
                 Arrays.stream(EmailConfiguration.values())
                         .filter(config -> config.getDomainName().equalsIgnoreCase(domainPart))
                         .findFirst();
         if (appropriateConfig.isPresent()) {
+            System.out.println("I am here 1");
             mailBox.setEmailConfiguration(appropriateConfig.get());
             mailBoxRepository.save(mailBox);
             return mailBox;
         }
         throw new RuntimeException();
     }
+
+    private void checkIfMailBoxExist(String emailAddress, String login) {
+        var mailbox = mailBoxRepository.findByEmailAddressAndUserLogin(emailAddress, login);
+        if (mailbox.isPresent()){
+            throw new RuntimeException("Email box is already used");
+        }
+
+    }
+
 
     private String getEmailDomain(String emailAddress) {
         Pattern pattern = Pattern.compile("(?<=@)[^.]+(?=\\.)");
