@@ -1,6 +1,7 @@
 package com.example.imap.service.impl;
 
 
+import com.example.imap.domain.MailBox;
 import com.example.imap.repository.MailBoxRepository;
 import com.example.imap.service.ImapService;
 import com.example.imap.web.dto.DetailedReceivedEmail;
@@ -179,6 +180,11 @@ public class ImapServiceImpl implements ImapService {
         closeFolder(newFolder);
         closeStore(store);
         return false;
+    }
+
+    @Override
+    public List<MailBox> getMailBoxes(String login) {
+        return mailBoxRepository.findByUserLogin(login);
     }
 
     private String getTextFromMessage(Message message) throws MessagingException, IOException {

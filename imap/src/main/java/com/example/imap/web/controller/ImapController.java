@@ -2,13 +2,13 @@ package com.example.imap.web.controller;
 
 
 import com.example.imap.domain.HttpResponse;
+import com.example.imap.domain.MailBox;
 import com.example.imap.service.ImapService;
-import com.example.imap.web.dto.DetailedReceivedEmail;
 import com.example.imap.web.mapper.EmailMapper;
-import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ImapController {
     private final EmailMapper emailMapper;
     private final ImapService imapService;
+
     @GetMapping("/{account}/{folderName}")
     public ResponseEntity<HttpResponse> readEmails(@PathVariable String account,
                                                    @PathVariable String folderName)
@@ -43,6 +44,7 @@ public class ImapController {
                 }).toList()))
                 .build());
     }
+
     @GetMapping("/{account}/{folderName}/{msgnum}")
     public ResponseEntity<HttpResponse> getSpecificEmail(@PathVariable String account,
                                                          @PathVariable String folderName,
@@ -58,6 +60,10 @@ public class ImapController {
                 .build());
     }
 
+    @GetMapping("/{login}/mailbox")
+    public ResponseEntity<List<MailBox>> getMailBoxes(@PathVariable String login) {
+        return ResponseEntity.ok(imapService.getMailBoxes(login));
+    }
 
 
 }

@@ -40,7 +40,7 @@ public class EmailServiceImpl implements EmailService {
     }
     @Override
     public MailBox addEmailConfiguration(MailBox mailBox) {
-        System.out.println("I am here 2");
+        checkIfMailBoxExist(mailBox.getEmailAddress(), mailBox.getUser().getLogin());
         String domainPart = getEmailDomain(mailBox.getEmailAddress());
         Optional<EmailConfiguration> appropriateConfig =
                 Arrays.stream(EmailConfiguration.values())
@@ -55,6 +55,12 @@ public class EmailServiceImpl implements EmailService {
         throw new RuntimeException();
     }
 
+    private void checkIfMailBoxExist(String emailAddress, String login) {
+        boolean exists = mailBoxRepository.existsByEmailAddressAndUserLogin(emailAddress, login);
+        if (exists) {
+            throw new RuntimeException("This email address has already been added for this user.");
+        }
+    }
     private String getEmailDomain(String emailAddress) {
         Pattern pattern = Pattern.compile("(?<=@)[^.]+(?=\\.)");
         Matcher matcher = pattern.matcher(emailAddress);
