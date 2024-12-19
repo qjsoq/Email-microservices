@@ -7,7 +7,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface MailBoxRepository extends JpaRepository<MailBox, Integer> {
-    Optional<MailBox> findByEmailAddress(String email);
     Optional<MailBox> findByEmailAddressAndUserLogin(String emailAddress, String login);
 
 }

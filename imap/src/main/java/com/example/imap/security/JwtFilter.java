@@ -4,6 +4,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.example.imap.client.UserClient;
 import com.example.imap.domain.User;
 import com.example.imap.exception.ServiceException;
 import jakarta.servlet.FilterChain;
@@ -20,18 +21,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
     private final HandlerExceptionResolver exceptionResolver;
-    private final WebClient.Builder webClientBuilder;
-    public JwtFilter( WebClient.Builder webClientBuilder,
+    private final UserClient userClient;
+    public JwtFilter(
                      @Qualifier("handlerExceptionResolver")
-                     HandlerExceptionResolver exceptionResolver) {
-        this.webClientBuilder = webClientBuilder;
+                     HandlerExceptionResolver exceptionResolver, UserClient userClient) {
+        this.userClient = userClient;
         this.exceptionResolver = exceptionResolver;
     }
 
@@ -45,13 +44,7 @@ public class JwtFilter extends OncePerRequestFilter {
         }
         String presentToken = token.get();
         try {
-            String url = String.format("http://user-service/api/v1/auth/validate-token/%s", presentToken);
-            User user = webClientBuilder.build()
-                    .get()
-                    .uri(url)
-                    .retrieve()
-                    .bodyToMono(User.class)
-                    .block();
+            User user = userClient.checkUser(presentToken);
                 var authentication =
                         new UsernamePasswordAuthenticationToken(user, null, List.of());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -59,9 +52,9 @@ public class JwtFilter extends OncePerRequestFilter {
         } catch (JWTVerificationException e) {
             exceptionResolver.resolveException(request, response, null, e);
             return;
-        } catch (WebClientResponseException e){
+        } catch (Exception e){
             exceptionResolver.resolveException(request, response, null,
-                    new ServiceException((HttpStatus) e.getStatusCode(), e.getResponseBodyAsString()));
+                    new ServiceException(HttpStatus.BAD_REQUEST, e.getMessage()));
             return;
         }
         filterChain.doFilter(request, response);

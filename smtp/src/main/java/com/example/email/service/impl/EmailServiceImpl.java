@@ -26,8 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.reactive.function.client.WebClient;
+
 
 
 @Service
@@ -43,10 +42,7 @@ public class EmailServiceImpl implements EmailService {
         var mailBox = mailBoxRepository.findByEmailAddressAndUserLogin(email.getSenderEmail(), login)
                 .orElseThrow(()-> new MailboxNotFoundException(String.format("Mail box not found %s", email.getSenderEmail())));
 
-//        if(!mailBox.getUser().getLogin().equals(login)){
-//            throw new RuntimeException("You have not add this email");
-//        }
-        specifyStrategy(email.getSenderEmail());
+        specifyStrategy(email.getSenderEmail(), login);
         return sendStrategy.sendWithStrategyEmail(email, mailBox);
     }
     @Override
@@ -86,8 +82,8 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    public void specifyStrategy(String senderEmail) {
-        MailBox mailBox = mailBoxRepository.findByEmailAddress(senderEmail)
+    public void specifyStrategy(String senderEmail, String login) {
+        MailBox mailBox = mailBoxRepository.findByEmailAddressAndUserLogin(senderEmail, login)
                 .orElseThrow(() -> new MailboxNotFoundException("Sender email not found: " + senderEmail));
 
         String strategyBeanName = mailBox.getEmailConfiguration().getDomainName();

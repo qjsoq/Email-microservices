@@ -1,6 +1,6 @@
 spring:
     application:
-        name: imap
+        name: imap-service
     datasource:
         url: jdbc:mysql://localhost:3306/mail-db
         username: root
@@ -11,8 +11,4 @@ spring:
         hibernate:
             ddl-auto: update
 server:
-    port: 0
-eureka:
-    client:
-        serviceUrl:
-            defaultZone: "http://localhost:8761/eureka"
+    port: 8081

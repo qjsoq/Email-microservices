@@ -3,6 +3,8 @@ package com.example.user.service.impl;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.example.user.client.ImapClient;
+import com.example.user.client.SmtpClient;
 import com.example.user.domain.MailBox;
 import com.example.user.domain.User;
 import com.example.user.exception.InvalidPasswordException;
@@ -18,25 +20,19 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
+
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
-    private final WebClient.Builder webClientBuilder;
+    private final SmtpClient smtpClient;
+    private final ImapClient imapClient;
     private final PasswordEncoder encoder;
     private final JwtTokenProvider jwtTokenProvider;
-
-
-    //private final EmailService emailService;
-    //private final MailBoxRepository mailBoxRepository;
 
     @Override
     public User saveUser(User user) {
@@ -63,16 +59,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<MailBox> getMailBoxes(String login) {
-        String url = "http://imap/api/v1/read/mailbox";
         String decodedJWT = jwtTokenProvider.generateToken(userRepository.findByLoginIgnoreCase(login).get());
-        return webClientBuilder.build()
-                .get()
-                .uri(url)
-                .header("Authorization", "Bearer " + decodedJWT) // Add token to Authorization header
-                .retrieve()
-                .bodyToFlux(MailBox.class) // Deserialize response to Flux<MailBox>
-                .collectList() // Convert Flux<MailBox> to List<MailBox>
-                .block(); // Block to wait for the result (avoid in reactive programming unless necessary)
+        String authorizationHeader = "Bearer " + decodedJWT;
+        return imapClient.getMailBoxes(authorizationHeader);
     }
 
     @Override
@@ -96,15 +85,10 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByLoginIgnoreCase(login).orElseThrow(() -> new UserNotFoundException("User not found"));
         mailBox.setUser(user);
         try {
-            return webClientBuilder.build().post()
-                    .uri("http://smtp-service/api/v1/email/config")
-                    .bodyValue(mailBox)
-                    .retrieve()
-                    .bodyToMono(MailBox.class)
-                    .block();
-        } catch (WebClientResponseException e) {
-            String errorBody = e.getResponseBodyAsString(); // The response body from smtp-service
-            throw new ServiceException((HttpStatus) e.getStatusCode(), errorBody);
+            return smtpClient.addAccount(mailBox);
+        } catch (Exception e) {
+            String errorBody = e.getMessage();
+            throw new ServiceException(HttpStatus.BAD_REQUEST, errorBody);
         }
     }
 }

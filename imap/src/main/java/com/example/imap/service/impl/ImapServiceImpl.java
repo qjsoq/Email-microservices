@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Properties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 @RequiredArgsConstructor
