@@ -1,5 +1,7 @@
 package com.example.apigateway.routes;
 
+import static org.springframework.cloud.gateway.server.mvc.filter.FilterFunctions.setPath;
+
 import org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctions;
 import org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions;
 import org.springframework.context.annotation.Bean;
@@ -38,6 +40,27 @@ public class Routes {
     public RouterFunction<ServerResponse> smtpServiceRoute() {
         return GatewayRouterFunctions.route("smtp_service")
                 .route(RequestPredicates.path("/api/v1/email"), HandlerFunctions.http("http://localhost:8083"))
+                .build();
+    }
+    @Bean
+    public RouterFunction<ServerResponse> userServiceSwaggerRoute() {
+        return GatewayRouterFunctions.route("user_service_swagger")
+                .route(RequestPredicates.path("/aggregate/user-service/api-docs"), HandlerFunctions.http("http://localhost:8082"))
+                .filter(setPath("/api-docs"))
+                .build();
+    }
+    @Bean
+    public RouterFunction<ServerResponse> imapServiceSwaggerRoute() {
+        return GatewayRouterFunctions.route("imap_service_swagger")
+                .route(RequestPredicates.path("/aggregate/imap-service/api-docs"), HandlerFunctions.http("http://localhost:8081"))
+                .filter(setPath("/api-docs"))
+                .build();
+    }
+    @Bean
+    public RouterFunction<ServerResponse> smtpServiceSwaggerRoute() {
+        return GatewayRouterFunctions.route("smtp_service_swagger")
+                .route(RequestPredicates.path("/aggregate/smtp-service/api-docs"), HandlerFunctions.http("http://localhost:8083"))
+                .filter(setPath("/api-docs"))
                 .build();
     }
 }

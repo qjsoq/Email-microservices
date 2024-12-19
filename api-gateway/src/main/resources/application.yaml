@@ -2,10 +2,20 @@ spring:
   application:
     name: api-gateway
 
-logging:
-  level:
-    root: INFO
-    org.springframework.cloud.gateway.route.RouteDefinitionLocator: INFO
-    org.springframework.cloud.gateway: TRACE
 server:
   port: 9090
+debug: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: user-service
+        url: /aggregate/user-service/api-docs
+      - name: imap-service
+        url: /aggregate/imap-service/api-docs
+      - name: smtp-service
+        url: /aggregate/smtp-service/api-docs
+  api-docs:
+    path: /api-docs
+
