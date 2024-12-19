@@ -3,7 +3,7 @@ package com.example.email.security;
 import static org.springframework.util.StringUtils.hasText;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.auth0.jwt.interfaces.DecodedJWT;
+import com.example.email.client.UserClient;
 import com.example.email.domain.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,20 +17,17 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
-    private final JwtTokenProvider tokenProvider;
     private final HandlerExceptionResolver exceptionResolver;
-    private final WebClient.Builder webClientBuilder;
+    private final UserClient userClient;
 
-    public JwtFilter(JwtTokenProvider tokenProvider, @Qualifier("handlerExceptionResolver")
-    HandlerExceptionResolver exceptionResolver, WebClient.Builder webClientBuilder) {
-        this.tokenProvider = tokenProvider;
+    public JwtFilter(@Qualifier("handlerExceptionResolver")
+                     HandlerExceptionResolver exceptionResolver, UserClient userClient) {
         this.exceptionResolver = exceptionResolver;
-        this.webClientBuilder = webClientBuilder;
+        this.userClient = userClient;
     }
 
     @Override
@@ -43,19 +40,11 @@ public class JwtFilter extends OncePerRequestFilter {
         }
         String presentToken = token.get();
         try {
-            Optional<DecodedJWT> decodedJwt = tokenProvider.decodedJwt(presentToken);
-            if (decodedJwt.isPresent()) {
-                String url = String.format("http://user-service/api/v1/auth/validate-token/%s", presentToken);
-                User user = webClientBuilder.build()
-                        .get()
-                        .uri(url)
-                        .retrieve()
-                        .bodyToMono(User.class)
-                        .block();
-                var authentication =
-                        new UsernamePasswordAuthenticationToken(user, null, List.of());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+            User user = userClient.checkUser(presentToken);
+            var authentication =
+                    new UsernamePasswordAuthenticationToken(user, null, List.of());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
         } catch (JWTVerificationException e) {
             exceptionResolver.resolveException(request, response, null, e);
             return;

@@ -2,6 +2,9 @@ package com.example.imap.service.impl;
 
 
 import com.example.imap.domain.MailBox;
+import com.example.imap.exception.InvalidEmailReaderException;
+import com.example.imap.exception.PropertiesNotFoundException;
+import com.example.imap.exception.ReadException;
 import com.example.imap.repository.MailBoxRepository;
 import com.example.imap.service.ImapService;
 import com.example.imap.web.dto.DetailedReceivedEmail;
@@ -26,7 +29,6 @@ import java.util.List;
 import java.util.Properties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 @RequiredArgsConstructor
@@ -82,7 +84,11 @@ public class ImapServiceImpl implements ImapService {
         setProperties(imapConfig.getImapHost());
         Session session = Session.getInstance(imapProperties);
         Store store = session.getStore("imap");
-        store.connect(imapConfig.getImapHost(), account, mailbox.getAccessSmtp());
+        try{
+            store.connect(imapConfig.getImapHost(), account, mailbox.getAccessSmtp());
+        } catch (Exception e){
+            throw new ReadException(e.getMessage());
+        }
         return store;
     }
 
@@ -93,7 +99,7 @@ public class ImapServiceImpl implements ImapService {
                     return host != null && host.contains(domainName);
                 })
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new PropertiesNotFoundException(
                         "No matching Properties bean found for domain: " + domainName));
     }
 
@@ -197,7 +203,7 @@ public class ImapServiceImpl implements ImapService {
     }
 
     private void isUserAllowedToReadEmail(String login, String account){
-        mailBoxRepository.findByEmailAddressAndUserLogin(account, login).orElseThrow(() -> new RuntimeException("this is not your email"));
+        mailBoxRepository.findByEmailAddressAndUserLogin(account, login).orElseThrow(() -> new InvalidEmailReaderException("this is not your email"));
     }
     public String getTextFromMimeMultipart(
             MimeMultipart mimeMultipart) throws MessagingException, IOException {

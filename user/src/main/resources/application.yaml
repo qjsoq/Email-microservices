@@ -11,12 +11,16 @@ spring:
     hibernate:
       ddl-auto: update
 server:
-  port: 0
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: "http://localhost:8761/eureka"
-
+  port: 8082
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /api-docs
 jwt:
   secret: "bQeThWmZq4t7w!z$C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSgVkYp3s6v9y$B&E)"
   issuer: "email-ms"
+imapservice:
+  url: http://localhost:8081
+smtpservice:
+  url: http://localhost:8083

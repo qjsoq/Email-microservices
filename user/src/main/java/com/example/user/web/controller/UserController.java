@@ -7,6 +7,7 @@ import com.example.user.service.UserService;
 import com.example.user.web.dto.mailbox.MailBoxCreation;
 import com.example.user.web.mapper.MailBoxMapper;
 import com.example.user.web.mapper.UserMapper;
+import jakarta.validation.Valid;
 import java.net.URI;
 import java.security.Principal;
 import java.time.LocalDateTime;
@@ -37,7 +38,7 @@ public class UserController {
     }
 
     @PostMapping("/add-account")
-    public ResponseEntity<HttpResponse> addAccount(@RequestBody MailBoxCreation mailBoxCreation,
+    public ResponseEntity<HttpResponse> addAccount(@Valid @RequestBody MailBoxCreation mailBoxCreation,
                                                    Principal principal) {
         var mailBox = userService.addAccount(mailBoxMapper.toMailBox(mailBoxCreation), principal.getName());
         return ResponseEntity.created(URI.create("")).body(HttpResponse.builder()

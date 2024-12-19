@@ -14,6 +14,5 @@ public interface UserService {
     MailBox addAccount(MailBox MailBox, String login);
     Optional<DecodedJWT> signIn(String login, String password);
     List<MailBox> getMailBoxes(String login);
-    User validateToken(String decodedJWT);
-    User validateToken2(String token);
+    User validateToken(String token);
 }

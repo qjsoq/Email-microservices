@@ -10,6 +10,7 @@ import com.example.user.web.dto.AuthenticationResponse;
 import com.example.user.web.dto.UserCreationDto;
 import com.example.user.web.mapper.AuthenticationMapper;
 import com.example.user.web.mapper.UserMapper;
+import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -33,7 +34,7 @@ public class AuthController {
 
 
     @PostMapping
-    public ResponseEntity<HttpResponse> createUser(@RequestBody UserCreationDto userCreationDto) {
+    public ResponseEntity<HttpResponse> createUser(@Valid @RequestBody UserCreationDto userCreationDto) {
         User newUser = userService.saveUser(userMapper.toUser(userCreationDto));
         return ResponseEntity.created(URI.create("")).body(
                 HttpResponse.builder()
@@ -47,14 +48,14 @@ public class AuthController {
 
     @PostMapping("/sign-in")
     public ResponseEntity<AuthenticationResponse> signIn(
-            @RequestBody AuthenticationRequest request) {
+            @Valid  @RequestBody AuthenticationRequest request) {
         return ResponseEntity.of(userService
-                .signIn(request.getEmail(), request.getPassword())
+                .signIn(request.getLogin(), request.getPassword())
                 .map(authenticationMapper::toAuthResponse));
     }
 
     @GetMapping("/validate-token/{token}")
     public ResponseEntity<User> validateToken(@PathVariable String token) {
-        return ResponseEntity.ok(userService.validateToken2(token));
+        return ResponseEntity.ok(userService.validateToken(token));
     }
 }
