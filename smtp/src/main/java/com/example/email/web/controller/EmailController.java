@@ -6,6 +6,7 @@ import com.example.email.service.EmailService;
 import com.example.email.web.dto.EmailCreationDto;
 import com.example.email.web.mapper.EmailMapper;
 import jakarta.mail.MessagingException;
+import jakarta.validation.Valid;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.time.LocalDateTime;
@@ -26,7 +27,7 @@ public class EmailController {
     private final EmailMapper emailMapper;
 
     @PostMapping
-    public ResponseEntity<HttpResponse> sendEmail(@RequestBody EmailCreationDto emailCreationDto, Principal principal)
+    public ResponseEntity<HttpResponse> sendEmail(@Valid @RequestBody EmailCreationDto emailCreationDto, Principal principal)
             throws UnsupportedEncodingException, MessagingException {
         System.out.println(principal.getName());
         var email = emailService.sendEmail(emailMapper.toEmail(emailCreationDto), principal.getName());

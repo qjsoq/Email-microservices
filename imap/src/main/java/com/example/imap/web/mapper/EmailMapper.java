@@ -2,7 +2,6 @@ package com.example.imap.web.mapper;
 
 
 import com.example.imap.domain.Email;
-import com.example.imap.web.dto.EmailCreationDto;
 import com.example.imap.web.dto.EmailDto;
 import com.example.imap.web.dto.ReceivedEmail;
 import jakarta.mail.Address;
@@ -28,7 +27,6 @@ public interface EmailMapper {
         return null;
     }
 
-    Email toEmail(EmailCreationDto emailCreationDto);
 
     EmailDto toDto(Email email);
 

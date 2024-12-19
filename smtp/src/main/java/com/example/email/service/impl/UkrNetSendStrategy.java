@@ -3,6 +3,7 @@ package com.example.email.service.impl;
 
 import com.example.email.domain.Email;
 import com.example.email.domain.MailBox;
+import com.example.email.exception.SendException;
 import com.example.email.repository.MailBoxRepository;
 import com.example.email.service.SendStrategy;
 import jakarta.mail.Message;
@@ -47,8 +48,11 @@ public class UkrNetSendStrategy implements SendStrategy {
         msg.setRecipient(Message.RecipientType.TO, new InternetAddress(email.getRecipientEmail()));
         msg.setSubject(email.getSubject());
         msg.setContent(email.getBody(), "text/html");
-
-        Transport.send(msg);
+        try{
+            Transport.send(msg);
+        }catch (Exception exception){
+            throw new SendException(exception.getMessage());
+        }
 
         email.setSentAt(LocalDateTime.now());
         return email;

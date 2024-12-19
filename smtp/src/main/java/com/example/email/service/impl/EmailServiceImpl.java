@@ -2,6 +2,10 @@ package com.example.email.service.impl;
 
 import com.example.email.domain.Email;
 import com.example.email.domain.MailBox;
+import com.example.email.exception.InvalidEmailDomainException;
+import com.example.email.exception.MailBoxAlreadyExistsException;
+import com.example.email.exception.MailboxNotFoundException;
+import com.example.email.exception.StrategyNotFoundException;
 import com.example.email.repository.MailBoxRepository;
 import com.example.email.service.EmailService;
 import com.example.email.service.SendStrategy;
@@ -22,6 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.reactive.function.client.WebClient;
 
 
@@ -36,13 +41,11 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public Email sendEmail(Email email, String login) throws MessagingException, UnsupportedEncodingException {
         var mailBox = mailBoxRepository.findByEmailAddressAndUserLogin(email.getSenderEmail(), login)
-                .orElseThrow(RuntimeException::new);
-        System.out.println(mailBox.getUser().getLogin());
-        System.out.println(login);
-        System.out.println(mailBox.getUser().getLogin().equals(login));
-        if(!mailBox.getUser().getLogin().equals(login)){
-            throw new RuntimeException("You have not add this email");
-        }
+                .orElseThrow(()-> new MailboxNotFoundException(String.format("Mail box not found %s", email.getSenderEmail())));
+
+//        if(!mailBox.getUser().getLogin().equals(login)){
+//            throw new RuntimeException("You have not add this email");
+//        }
         specifyStrategy(email.getSenderEmail());
         return sendStrategy.sendWithStrategyEmail(email, mailBox);
     }
@@ -60,13 +63,14 @@ public class EmailServiceImpl implements EmailService {
             mailBoxRepository.save(mailBox);
             return mailBox;
         }
-        throw new RuntimeException();
+        throw new InvalidEmailDomainException(String.format("the provided domainpart %s is not supported", domainPart));
     }
+
 
     private void checkIfMailBoxExist(String emailAddress, String login) {
         var mailbox = mailBoxRepository.findByEmailAddressAndUserLogin(emailAddress, login);
         if (mailbox.isPresent()){
-            throw new RuntimeException("Email box is already used");
+            throw new MailBoxAlreadyExistsException(String.format("Email box %s is already used", emailAddress));
         }
 
     }
@@ -84,7 +88,7 @@ public class EmailServiceImpl implements EmailService {
 
     public void specifyStrategy(String senderEmail) {
         MailBox mailBox = mailBoxRepository.findByEmailAddress(senderEmail)
-                .orElseThrow(() -> new RuntimeException("Sender email not found: " + senderEmail));
+                .orElseThrow(() -> new MailboxNotFoundException("Sender email not found: " + senderEmail));
 
         String strategyBeanName = mailBox.getEmailConfiguration().getDomainName();
 
@@ -93,7 +97,7 @@ public class EmailServiceImpl implements EmailService {
                         strategy.getClass().getAnnotation(Service.class).value()
                                 .equalsIgnoreCase(strategyBeanName))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new StrategyNotFoundException(
                         "No SendStrategy found for: " + strategyBeanName));
     }
 

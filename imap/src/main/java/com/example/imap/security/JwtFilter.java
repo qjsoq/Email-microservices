@@ -5,6 +5,7 @@ import static org.springframework.util.StringUtils.hasText;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.imap.domain.User;
+import com.example.imap.exception.ServiceException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,12 +14,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Component
@@ -56,8 +59,11 @@ public class JwtFilter extends OncePerRequestFilter {
         } catch (JWTVerificationException e) {
             exceptionResolver.resolveException(request, response, null, e);
             return;
+        } catch (WebClientResponseException e){
+            exceptionResolver.resolveException(request, response, null,
+                    new ServiceException((HttpStatus) e.getStatusCode(), e.getResponseBodyAsString()));
+            return;
         }
-
         filterChain.doFilter(request, response);
 
     }

@@ -43,19 +43,17 @@ public class JwtFilter extends OncePerRequestFilter {
         }
         String presentToken = token.get();
         try {
-            Optional<DecodedJWT> decodedJwt = tokenProvider.decodedJwt(presentToken);
-            if (decodedJwt.isPresent()) {
-                String url = String.format("http://user-service/api/v1/auth/validate-token/%s", presentToken);
-                User user = webClientBuilder.build()
-                        .get()
-                        .uri(url)
-                        .retrieve()
-                        .bodyToMono(User.class)
-                        .block();
-                var authentication =
-                        new UsernamePasswordAuthenticationToken(user, null, List.of());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+            String url = String.format("http://user-service/api/v1/auth/validate-token/%s", presentToken);
+            User user = webClientBuilder.build()
+                    .get()
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(User.class)
+                    .block();
+            var authentication =
+                    new UsernamePasswordAuthenticationToken(user, null, List.of());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
         } catch (JWTVerificationException e) {
             exceptionResolver.resolveException(request, response, null, e);
             return;
