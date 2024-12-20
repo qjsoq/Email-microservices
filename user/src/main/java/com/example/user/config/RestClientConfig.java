@@ -11,9 +11,9 @@ import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 @Configuration
 public class RestClientConfig {
-    @Value("${imapservice.url}")
+    @Value("${service.imap-service-url}")
     private String imapServiceUrl;
-    @Value("${smtpservice.url}")
+    @Value("${service.smtp-service-url}")
     private String smtpServiceUrl;
 
 

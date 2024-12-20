@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smtp-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: smtp-service
+  template:
+    metadata:
+      labels:
+        app: smtp-service
+    spec:
+      containers:
+        - name: smtp-service
+          image: artamonovdima/smtp:latest
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: SPRING_DATASOURCE_URL
+                  name: smtp-service-config
+            - name: USER_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: USER_SERVICE_URL
+                  name: common-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: smtp-service
+spec:
+  selector:
+    app: smtp-service
+  ports:
+    - protocol: TCP
+      port: 8083
+      targetPort: 8083
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smtp-service-config
+data:
+  SPRING_DATASOURCE_URL: "jdbc:mysql://mysql.default.svc.cluster.local:3306/mail-db"

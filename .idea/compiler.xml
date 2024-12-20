@@ -25,7 +25,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="discovery-server" target="17" />
+      <module name="discovery-server" target="19" />
       <module name="email-moicroservices" target="17" />
     </bytecodeTargetLevel>
   </component>
