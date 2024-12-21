@@ -26,6 +26,8 @@ public class MailBox {
     private User user;
     private String emailAddress;
     private String accessSmtp;
+    private String refreshToken;
+
     @Enumerated(value = EnumType.STRING)
     private EmailConfiguration emailConfiguration;
 }

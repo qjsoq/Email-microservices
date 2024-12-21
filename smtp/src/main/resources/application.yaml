@@ -21,6 +21,8 @@ springdoc:
     path: /api-docs
 service:
   user-service-url: ${USER_SERVICE_URL}
-
+google-client:
+  id: ${GOOGLE_CLIENT_ID}
+  secret: ${GOOGLE_CLIENT_SECRET}
 
 

@@ -1,6 +1,7 @@
 package com.example.email.web;
 
 import com.example.email.exception.InvalidEmailDomainException;
+import com.example.email.exception.InvalidRefreshToken;
 import com.example.email.exception.MailBoxAlreadyExistsException;
 import com.example.email.exception.MailboxNotFoundException;
 import com.example.email.exception.SendException;
@@ -29,12 +30,16 @@ public class SmtpExceptionHandler {
                         Collectors.mapping(FieldError::getDefaultMessage, Collectors.toList())));
         return ResponseEntity.badRequest().body(errors);
     }
+
     @ExceptionHandler({MailboxNotFoundException.class, StrategyNotFoundException.class})
     @ResponseStatus(code = HttpStatus.NOT_FOUND)
     public ErrorResponse notFoundExceptionHandler(RuntimeException runtimeException) {
         return new ErrorResponse(runtimeException.getMessage());
     }
-    @ExceptionHandler({MailBoxAlreadyExistsException.class, InvalidEmailDomainException.class, SendException.class, ServiceException.class})
+
+    @ExceptionHandler({MailBoxAlreadyExistsException.class, InvalidEmailDomainException.class,
+            SendException.class, ServiceException.class,
+            InvalidRefreshToken.class})
     @ResponseStatus(code = HttpStatus.BAD_REQUEST)
     public ErrorResponse invalidParametersExceptionHandler(RuntimeException runtimeException) {
         return new ErrorResponse(runtimeException.getLocalizedMessage());
