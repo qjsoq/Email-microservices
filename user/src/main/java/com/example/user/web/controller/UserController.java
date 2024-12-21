@@ -5,6 +5,7 @@ import com.example.user.common.HttpResponse;
 import com.example.user.domain.MailBox;
 import com.example.user.service.UserService;
 import com.example.user.web.dto.mailbox.MailBoxCreation;
+import com.example.user.web.dto.mailbox.MailBoxDto;
 import com.example.user.web.mapper.MailBoxMapper;
 import com.example.user.web.mapper.UserMapper;
 import jakarta.validation.Valid;
@@ -32,7 +33,7 @@ public class UserController {
     private final MailBoxMapper mailBoxMapper;
 
     @GetMapping("/mailbox")
-    public ResponseEntity<List<MailBox>> getMailBoxes(Principal principal) {
+    public ResponseEntity<List<MailBoxDto>> getMailBoxes(Principal principal) {
         var mailBoxes = userService.getMailBoxes(principal.getName());
         return ResponseEntity.ok(mailBoxes);
     }

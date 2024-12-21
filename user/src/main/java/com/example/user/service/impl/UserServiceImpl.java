@@ -16,6 +16,7 @@ import com.example.user.repository.UserRepository;
 import com.example.user.security.JwtTokenProvider;
 import com.example.user.service.UserService;
 import com.example.user.web.dto.ErrorResponse;
+import com.example.user.web.dto.mailbox.MailBoxDto;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +59,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<MailBox> getMailBoxes(String login) {
+    public List<MailBoxDto> getMailBoxes(String login) {
         String decodedJWT = jwtTokenProvider.generateToken(userRepository.findByLoginIgnoreCase(login).get());
         String authorizationHeader = "Bearer " + decodedJWT;
         return imapClient.getMailBoxes(authorizationHeader);

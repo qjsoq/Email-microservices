@@ -8,6 +8,7 @@ import com.example.imap.exception.ReadException;
 import com.example.imap.repository.MailBoxRepository;
 import com.example.imap.service.ImapService;
 import com.example.imap.web.dto.DetailedReceivedEmail;
+import com.example.imap.web.dto.MailBoxDto;
 import jakarta.mail.Address;
 import jakarta.mail.BodyPart;
 import jakarta.mail.FetchProfile;
@@ -24,9 +25,11 @@ import jakarta.mail.search.ComparisonTerm;
 import jakarta.mail.search.ReceivedDateTerm;
 import jakarta.mail.search.SearchTerm;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -37,8 +40,14 @@ public class ImapServiceImpl implements ImapService {
     private final MailBoxRepository mailBoxRepository;
     private Properties imapProperties;
 
-    public static Folder getFolderFromStore(Store store, String folderName, int type) throws
-            MessagingException {
+
+    public static Folder getFolderFromStore(Store store, String folderName, int type) throws MessagingException {
+        Folder[] folders = store.getDefaultFolder().list("*");
+        for (Folder folder : folders) {
+            if ((folder.getType() & Folder.HOLDS_MESSAGES) != 0) {
+                System.out.println(folder.getFullName() + ": " + folder.getMessageCount());
+            }
+        }
         Folder folder = store.getFolder(folderName);
         folder.open(type);
         return folder;
@@ -113,7 +122,7 @@ public class ImapServiceImpl implements ImapService {
         if (messageCount == 0) {
             return new Message[0];
         }
-        int start = Math.max(1, messageCount - 14);
+        int start = Math.max(1, messageCount - 30);
         Message[] messages = folder.getMessages(start, messageCount);
         folder.fetch(messages, getFetchProfile());
         closeFolder(folder);
@@ -187,11 +196,39 @@ public class ImapServiceImpl implements ImapService {
         closeStore(store);
         return false;
     }
+    private String[] getFolderNames(Store store) throws MessagingException {
+        return Arrays.stream(store.getDefaultFolder().list("*")).map(Folder::getFullName).toArray(String[]::new);
+    }
 
     @Override
-    public List<MailBox> getMailBoxes(String login) {
-        return mailBoxRepository.findByUserLogin(login);
+    public List<MailBoxDto> getMailBoxes(String login) {
+        List<MailBox> mailBoxes = mailBoxRepository.findByUserLogin(login);
+
+        List<MailBoxDto> mailBoxDtos = mailBoxes.stream()
+                .map(mailBox -> {
+                    try {
+                        MailBoxDto mailBoxDto = new MailBoxDto();
+                        mailBoxDto.setEmailAddress(mailBox.getEmailAddress());
+
+                        Store store = getImapStore(mailBox.getEmailAddress(), login);
+                        String[] folders = getFolderNames(store);
+                        closeStore(store);
+                        mailBoxDto.setFolders(folders);
+
+                        return mailBoxDto;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        MailBoxDto mailBoxDto = new MailBoxDto();
+                        mailBoxDto.setEmailAddress(mailBox.getEmailAddress());
+                        mailBoxDto.setFolders(new String[0]);
+                        return mailBoxDto;
+                    }
+                })
+                .collect(Collectors.toList());
+
+        return mailBoxDtos;
     }
+
 
     private String getTextFromMessage(Message message) throws MessagingException, IOException {
         if (message.getContent() instanceof MimeMultipart mimeMultipart) {

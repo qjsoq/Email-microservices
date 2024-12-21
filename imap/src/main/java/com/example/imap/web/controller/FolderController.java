@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class FolderController {
     private final ImapService imapService;
-    @PostMapping("/{account}/{folderName}")
+    @PostMapping("/create/{account}/{folderName}")
     public ResponseEntity<HttpResponse> createFolder(@PathVariable String account,
                                                      @PathVariable String folderName, Principal principal)
             throws Exception {
@@ -32,14 +33,13 @@ public class FolderController {
                 .build());
     }
 
-    @PostMapping("/{account}/{sourceFolder}/{destinationFolderName}/{msgnum}")
+    @PostMapping("/move/{account}/{msgnum}")
     public ResponseEntity<HttpResponse> moveEmailToFolder(@PathVariable String account,
-                                                          @PathVariable String sourceFolder,
-                                                          @PathVariable
-                                                          String destinationFolderName,
+                                                          @RequestBody Map<String, String> folderNameMap,
                                                           @PathVariable int msgnum, Principal principal)
             throws Exception {
-        imapService.moveEmail(account, sourceFolder, destinationFolderName, msgnum,
+
+        imapService.moveEmail(account, folderNameMap.get("sourceFolder"), folderNameMap.get("destinationFolderName"), msgnum,
                 principal.getName());
         return ResponseEntity.ok(HttpResponse.builder().build());
     }

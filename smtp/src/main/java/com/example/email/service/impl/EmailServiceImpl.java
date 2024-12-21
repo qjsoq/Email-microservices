@@ -10,12 +10,8 @@ import com.example.email.repository.MailBoxRepository;
 import com.example.email.service.EmailService;
 import com.example.email.service.SendStrategy;
 import com.example.email.util.EmailConfiguration;
-import com.example.email.web.dto.DetailedReceivedEmail;
-import jakarta.mail.Address;
 import jakarta.mail.BodyPart;
-import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
-import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMultipart;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -28,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 
-
 @Service
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
@@ -38,15 +33,19 @@ public class EmailServiceImpl implements EmailService {
     private SendStrategy sendStrategy;
 
     @Override
-    public Email sendEmail(Email email, String login) throws MessagingException, UnsupportedEncodingException {
-        var mailBox = mailBoxRepository.findByEmailAddressAndUserLogin(email.getSenderEmail(), login)
-                .orElseThrow(()-> new MailboxNotFoundException(String.format("Mail box not found %s", email.getSenderEmail())));
+    public Email sendEmail(Email email, String login)
+            throws MessagingException, UnsupportedEncodingException {
+        var mailBox =
+                mailBoxRepository.findByEmailAddressAndUserLogin(email.getSenderEmail(), login)
+                        .orElseThrow(() -> new MailboxNotFoundException(
+                                String.format("Mail box not found %s", email.getSenderEmail())));
 
         specifyStrategy(email.getSenderEmail(), login);
         return sendStrategy.sendWithStrategyEmail(email, mailBox);
     }
+
     @Override
-    public MailBox addEmailConfiguration(MailBox mailBox) {
+    public MailBox addEmailConfiguration(MailBox mailBox) throws MessagingException {
         checkIfMailBoxExist(mailBox.getEmailAddress(), mailBox.getUser().getLogin());
         String domainPart = getEmailDomain(mailBox.getEmailAddress());
         Optional<EmailConfiguration> appropriateConfig =
@@ -56,17 +55,25 @@ public class EmailServiceImpl implements EmailService {
         if (appropriateConfig.isPresent()) {
             System.out.println("I am here 1");
             mailBox.setEmailConfiguration(appropriateConfig.get());
+            checkIsPasswordCorrect(mailBox);
             mailBoxRepository.save(mailBox);
             return mailBox;
         }
-        throw new InvalidEmailDomainException(String.format("the provided domainpart %s is not supported", domainPart));
+        throw new InvalidEmailDomainException(
+                String.format("the provided domainpart %s is not supported", domainPart));
     }
 
+    private void checkIsPasswordCorrect(MailBox mailBox) throws MessagingException {
+        specifyStrategyByMailBox(mailBox);
+        sendStrategy.checkIsPasswordCorrect(mailBox);
+
+    }
 
     private void checkIfMailBoxExist(String emailAddress, String login) {
         var mailbox = mailBoxRepository.findByEmailAddressAndUserLogin(emailAddress, login);
-        if (mailbox.isPresent()){
-            throw new MailBoxAlreadyExistsException(String.format("Email box %s is already used", emailAddress));
+        if (mailbox.isPresent()) {
+            throw new MailBoxAlreadyExistsException(
+                    String.format("Email box %s is already used", emailAddress));
         }
 
     }
@@ -84,8 +91,13 @@ public class EmailServiceImpl implements EmailService {
 
     public void specifyStrategy(String senderEmail, String login) {
         MailBox mailBox = mailBoxRepository.findByEmailAddressAndUserLogin(senderEmail, login)
-                .orElseThrow(() -> new MailboxNotFoundException("Sender email not found: " + senderEmail));
+                .orElseThrow(() -> new MailboxNotFoundException(
+                        "Sender email not found: " + senderEmail));
 
+        specifyStrategyByMailBox(mailBox);
+    }
+
+    private void specifyStrategyByMailBox(MailBox mailBox) {
         String strategyBeanName = mailBox.getEmailConfiguration().getDomainName();
 
         sendStrategy = listOfStrategies.stream()
@@ -96,6 +108,7 @@ public class EmailServiceImpl implements EmailService {
                 .orElseThrow(() -> new StrategyNotFoundException(
                         "No SendStrategy found for: " + strategyBeanName));
     }
+
 
     public String getTextFromMimeMultipart2(
             MimeMultipart mimeMultipart) throws MessagingException, IOException {

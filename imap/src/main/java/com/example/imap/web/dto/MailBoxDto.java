@@ -1,4 +1,5 @@
-package com.example.user.web.dto.mailbox;
+package com.example.imap.web.dto;
+
 import lombok.Data;
 
 @Data

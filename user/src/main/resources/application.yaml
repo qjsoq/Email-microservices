@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:C:\Users\асус\IdeaProjects\microservices\email-moicroservices\api-gateway\src\main\resources\.env[.properties]
   application:
     name: user-service
   datasource:
