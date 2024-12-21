@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: common-config
+data:
+  USER_SERVICE_URL: "http://user-service.default.svc.cluster.local:8082"
+  SMTP_SERVICE_URL: "http://smtp-service.default.svc.cluster.local:8083"
+  IMAP_SERVICE_URL: "http://imap-service.default.svc.cluster.local:8081"

@@ -7,11 +7,15 @@ import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface EmailService {
 
     Email sendEmail(Email email, String login) throws MessagingException, UnsupportedEncodingException;
 
 
-    MailBox addEmailConfiguration(MailBox mailBox);
+    MailBox addEmailConfiguration(MailBox mailBox) throws MessagingException;
+
+    @Transactional
+    void refreshGmailTokens();
 }

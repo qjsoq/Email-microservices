@@ -13,4 +13,5 @@ public class MailBoxCreation {
     @NotBlank(message = "Specify password")
     @Size(min = 5, message = "Enter at least 6 characters")
     private String accessSmtp;
+    private String refreshToken;
 }

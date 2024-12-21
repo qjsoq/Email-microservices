@@ -15,7 +15,10 @@ import com.example.user.exception.UserNotFoundException;
 import com.example.user.repository.UserRepository;
 import com.example.user.security.JwtTokenProvider;
 import com.example.user.service.UserService;
-import com.example.user.web.dto.ErrorResponse;
+
+import com.example.user.web.dto.mailbox.MailBoxDto;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+
     private final UserRepository userRepository;
     private final SmtpClient smtpClient;
     private final ImapClient imapClient;
@@ -35,7 +39,7 @@ public class UserServiceImpl implements UserService {
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
-    public User saveUser(User user) {
+    public User saveUser(User user) throws IOException {
         if (userRepository.existsByLogin(user.getLogin())) {
             throw new UserAlreadyExistsException("User already exists");
         }
@@ -58,7 +62,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<MailBox> getMailBoxes(String login) {
+    public List<MailBoxDto> getMailBoxes(String login) {
         String decodedJWT = jwtTokenProvider.generateToken(userRepository.findByLoginIgnoreCase(login).get());
         String authorizationHeader = "Bearer " + decodedJWT;
         return imapClient.getMailBoxes(authorizationHeader);

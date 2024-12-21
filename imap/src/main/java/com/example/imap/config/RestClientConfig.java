@@ -10,7 +10,7 @@ import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 @Configuration
 public class RestClientConfig {
-    @Value("${userservice.url}")
+    @Value("${service.user-service-url}")
     private String userServiceUrl;
     @Bean
     public UserClient imapClient() {

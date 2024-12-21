@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: artamonovdima/api-gateway:latest
+          ports:
+            - containerPort: 9090
+          env:
+            - name: USER_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: USER_SERVICE_URL
+                  name: common-config
+            - name: SMTP_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: SMTP_SERVICE_URL
+                  name: common-config
+            - name: IMAP_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: IMAP_SERVICE_URL
+                  name: common-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+spec:
+  type: LoadBalancer
+  selector:
+    app: api-gateway
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090

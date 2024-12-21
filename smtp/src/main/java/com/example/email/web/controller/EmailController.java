@@ -41,7 +41,8 @@ public class EmailController {
     }
 
     @PostMapping("/config")
-    public ResponseEntity<MailBox> setEmailConfig(@RequestBody MailBox mailBox){
+    public ResponseEntity<MailBox> setEmailConfig(@RequestBody MailBox mailBox)
+            throws MessagingException {
         return ResponseEntity.ok(emailService.addEmailConfiguration(mailBox));
     }
 

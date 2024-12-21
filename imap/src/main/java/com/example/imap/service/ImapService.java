@@ -3,6 +3,7 @@ package com.example.imap.service;
 
 import com.example.imap.domain.MailBox;
 import com.example.imap.web.dto.DetailedReceivedEmail;
+import com.example.imap.web.dto.MailBoxDto;
 import jakarta.mail.Message;
 import java.util.List;
 
@@ -13,6 +14,6 @@ public interface ImapService {
     void moveEmail(String account, String sourceFolder, String destinationFolder, int msgnum, String login)
             throws Exception;
     boolean createFolder(String folderName, String account, String login) throws Exception;
-    List<MailBox> getMailBoxes(String login);
+    List<MailBoxDto> getMailBoxes(String login);
 
 }

@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:C:\Users\асус\IdeaProjects\microservices\email-moicroservices\api-gateway\src\main\resources\.env[.properties]
   application:
     name: api-gateway
 
@@ -18,4 +20,9 @@ springdoc:
         url: /aggregate/smtp-service/api-docs
   api-docs:
     path: /api-docs
+service:
+  user-service-url: ${USER_SERVICE_URL}
+  imap-service-url: ${IMAP_SERVICE_URL}
+  smtp-service-url: ${SMTP_SERVICE_URL}
+
 

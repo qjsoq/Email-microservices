@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smtp-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: smtp-service
+  template:
+    metadata:
+      labels:
+        app: smtp-service
+    spec:
+      containers:
+        - name: smtp-service
+          image: artamonovdima/smtp:latest
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: SPRING_DATASOURCE_URL
+                  name: smtp-service-config
+            - name: USER_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: USER_SERVICE_URL
+                  name: common-config
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: google-client-secrets
+                  key: GOOGLE_CLIENT_ID
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: google-client-secrets
+                  key: GOOGLE_CLIENT_SECRET
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: smtp-service
+spec:
+  selector:
+    app: smtp-service
+  ports:
+    - protocol: TCP
+      port: 8083
+      targetPort: 8083
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smtp-service-config
+data:
+  SPRING_DATASOURCE_URL: "jdbc:mysql://mysql.default.svc.cluster.local:3306/mail-db"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: google-client-secrets
+type: Opaque
+data:
+  GOOGLE_CLIENT_ID: NDI1MDY2NTQwOTktaGh1NWVydDRxbzFoamZobWVjdjJmaWFoOXBxdWJlOGUuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20K
+  GOOGLE_CLIENT_SECRET: R09DU1BYLXRzcHZHeXJITHpLeVlVT0c1VFRaZVExdzFhYTRLCg==
+

@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:C:\Users\асус\IdeaProjects\microservices\email-moicroservices\api-gateway\src\main\resources\.env[.properties]
   application:
     name: user-service
   datasource:
@@ -20,7 +22,6 @@ springdoc:
 jwt:
   secret: "bQeThWmZq4t7w!z$C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSgVkYp3s6v9y$B&E)"
   issuer: "email-ms"
-imapservice:
-  url: http://localhost:8081
-smtpservice:
-  url: http://localhost:8083
+service:
+  imap-service-url: ${IMAP_SERVICE_URL}
+  smtp-service-url: ${SMTP_SERVICE_URL}

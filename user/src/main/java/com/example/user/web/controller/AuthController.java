@@ -11,6 +11,7 @@ import com.example.user.web.dto.UserCreationDto;
 import com.example.user.web.mapper.AuthenticationMapper;
 import com.example.user.web.mapper.UserMapper;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -34,7 +35,8 @@ public class AuthController {
 
 
     @PostMapping
-    public ResponseEntity<HttpResponse> createUser(@Valid @RequestBody UserCreationDto userCreationDto) {
+    public ResponseEntity<HttpResponse> createUser(@Valid @RequestBody UserCreationDto userCreationDto)
+            throws IOException {
         User newUser = userService.saveUser(userMapper.toUser(userCreationDto));
         return ResponseEntity.created(URI.create("")).body(
                 HttpResponse.builder()

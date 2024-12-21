@@ -4,6 +4,7 @@ package com.example.imap.web.controller;
 import com.example.imap.domain.HttpResponse;
 import com.example.imap.domain.MailBox;
 import com.example.imap.service.ImapService;
+import com.example.imap.web.dto.MailBoxDto;
 import com.example.imap.web.mapper.EmailMapper;
 import jakarta.mail.MessagingException;
 import java.security.Principal;
@@ -17,7 +18,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -27,10 +31,11 @@ public class ImapController {
     private final EmailMapper emailMapper;
     private final ImapService imapService;
 
-    @GetMapping("/{account}/{folderName}")
+    @PostMapping("/{account}")
     public ResponseEntity<HttpResponse> readEmails(@PathVariable String account,
-                                                   @PathVariable String folderName, Principal principal)
+                                                   @RequestBody Map<String, String> folderNameMap, Principal principal)
             throws Exception {
+        String folderName = folderNameMap.get("folderName");
         var messages = imapService.getEmails(account, folderName, principal.getName());
         return ResponseEntity.ok(HttpResponse.builder()
                 .httpStatus(HttpStatus.OK)
@@ -47,11 +52,12 @@ public class ImapController {
                 .build());
     }
 
-    @GetMapping("/{account}/{folderName}/{msgnum}")
+    @PostMapping("/{account}/{msgnum}")
     public ResponseEntity<HttpResponse> getSpecificEmail(@PathVariable String account,
-                                                         @PathVariable String folderName,
+                                                         @RequestBody Map<String, String> folderNameMap,
                                                          @PathVariable int msgnum, Principal principal)
             throws Exception {
+        String folderName = folderNameMap.get("folderName");
         var email = imapService.getSpecificEmail(account, folderName, msgnum, principal.getName());
         return ResponseEntity.ok(HttpResponse.builder()
                 .httpStatus(HttpStatus.OK)
@@ -63,7 +69,7 @@ public class ImapController {
     }
 
     @GetMapping("/mailbox")
-    public ResponseEntity<List<MailBox>> getMailBoxes(Principal principal) {
+    public ResponseEntity<List<MailBoxDto>> getMailBoxes(Principal principal) {
         return ResponseEntity.ok(imapService.getMailBoxes(principal.getName()));
     }
 }

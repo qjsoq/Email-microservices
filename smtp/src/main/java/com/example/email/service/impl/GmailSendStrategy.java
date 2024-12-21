@@ -10,6 +10,7 @@ import com.sun.mail.smtp.SMTPTransport;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
@@ -54,7 +55,6 @@ public class GmailSendStrategy implements SendStrategy {
                     StandardCharsets.UTF_8));
 
             transport.issueCommand("AUTH XOAUTH2 " + encodedAuthString, 235);
-
             transport.sendMessage(msg, msg.getAllRecipients());
         } catch (MessagingException exception) {
             throw new SendException(exception.getMessage());
@@ -62,6 +62,26 @@ public class GmailSendStrategy implements SendStrategy {
 
         email.setSentAt(LocalDateTime.now());
         return email;
+    }
+
+    @Override
+    public void checkIsPasswordCorrect(MailBox mailBox) throws MessagingException {
+        props.put("mail.smtp.auth.mechanisms", "XOAUTH2");
+        props.put("mail.debug.auth", "true");
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        Session session = Session.getInstance(props);
+        Transport transport = session.getTransport();
+        try{
+            transport.connect(mailBox.getEmailAddress(), mailBox.getAccessSmtp());
+            transport.close();
+        } catch (Exception exception){
+            exception.printStackTrace();
+            throw new SendException("Invalid credentials");
+        } finally {
+            props.remove("mail.smtp.host");
+            props.remove("mail.smtp.auth.mechanisms");
+            props.remove("mail.debug.auth");
+        }
     }
 
 }

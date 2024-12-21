@@ -58,4 +58,25 @@ public class UkrNetSendStrategy implements SendStrategy {
         return email;
     }
 
+    @Override
+    public void checkIsPasswordCorrect(MailBox mailBox) {
+        Session session = Session.getInstance(props, new jakarta.mail.Authenticator() {
+            @Override
+            protected jakarta.mail.PasswordAuthentication getPasswordAuthentication() {
+                return new jakarta.mail.PasswordAuthentication(mailBox.getEmailAddress(),
+                        mailBox.getAccessSmtp());
+            }
+        });
+
+        session.setDebug(true);
+
+        try (Transport transport = session.getTransport("smtp")) {
+            transport.connect(mailBox.getEmailConfiguration().getHost(),
+                    mailBox.getEmailAddress(),
+                    mailBox.getAccessSmtp());
+        } catch (Exception e) {
+            throw new SendException("Invalid credentials");
+        }
+    }
+
 }
