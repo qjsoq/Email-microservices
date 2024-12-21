@@ -26,6 +26,16 @@ spec:
                 configMapKeyRef:
                   key: USER_SERVICE_URL
                   name: common-config
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: google-client-secrets
+                  key: GOOGLE_CLIENT_ID
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: google-client-secrets
+                  key: GOOGLE_CLIENT_SECRET
 ---
 apiVersion: v1
 kind: Service
@@ -45,3 +55,13 @@ metadata:
   name: smtp-service-config
 data:
   SPRING_DATASOURCE_URL: "jdbc:mysql://mysql.default.svc.cluster.local:3306/mail-db"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: google-client-secrets
+type: Opaque
+data:
+  GOOGLE_CLIENT_ID: NDI1MDY2NTQwOTktaGh1NWVydDRxbzFoamZobWVjdjJmaWFoOXBxdWJlOGUuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20K
+  GOOGLE_CLIENT_SECRET: R09DU1BYLXRzcHZHeXJITHpLeVlVT0c1VFRaZVExdzFhYTRLCg==
+
