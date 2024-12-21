@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,7 +31,7 @@ public class ImapController {
     private final EmailMapper emailMapper;
     private final ImapService imapService;
 
-    @GetMapping("/{account}")
+    @PostMapping("/{account}")
     public ResponseEntity<HttpResponse> readEmails(@PathVariable String account,
                                                    @RequestBody Map<String, String> folderNameMap, Principal principal)
             throws Exception {
@@ -51,7 +52,7 @@ public class ImapController {
                 .build());
     }
 
-    @GetMapping("/{account}/{msgnum}")
+    @PostMapping("/{account}/{msgnum}")
     public ResponseEntity<HttpResponse> getSpecificEmail(@PathVariable String account,
                                                          @RequestBody Map<String, String> folderNameMap,
                                                          @PathVariable int msgnum, Principal principal)
