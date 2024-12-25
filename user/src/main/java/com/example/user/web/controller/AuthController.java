@@ -1,7 +1,6 @@
 package com.example.user.web.controller;
 
 
-import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.user.common.HttpResponse;
 import com.example.user.domain.User;
 import com.example.user.service.UserService;
@@ -33,9 +32,9 @@ public class AuthController {
     private final UserMapper userMapper;
     private final AuthenticationMapper authenticationMapper;
 
-
     @PostMapping
-    public ResponseEntity<HttpResponse> createUser(@Valid @RequestBody UserCreationDto userCreationDto)
+    public ResponseEntity<HttpResponse> createUser(
+            @Valid @RequestBody UserCreationDto userCreationDto)
             throws IOException {
         User newUser = userService.saveUser(userMapper.toUser(userCreationDto));
         return ResponseEntity.created(URI.create("")).body(
@@ -50,7 +49,7 @@ public class AuthController {
 
     @PostMapping("/sign-in")
     public ResponseEntity<AuthenticationResponse> signIn(
-            @Valid  @RequestBody AuthenticationRequest request) {
+            @Valid @RequestBody AuthenticationRequest request) {
         return ResponseEntity.of(userService
                 .signIn(request.getLogin(), request.getPassword())
                 .map(authenticationMapper::toAuthResponse));

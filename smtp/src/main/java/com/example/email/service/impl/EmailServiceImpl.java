@@ -3,7 +3,6 @@ package com.example.email.service.impl;
 import com.example.email.domain.Email;
 import com.example.email.domain.MailBox;
 import com.example.email.exception.InvalidEmailDomainException;
-import com.example.email.exception.InvalidRefreshToken;
 import com.example.email.exception.MailBoxAlreadyExistsException;
 import com.example.email.exception.MailboxNotFoundException;
 import com.example.email.exception.StrategyNotFoundException;
@@ -11,20 +10,20 @@ import com.example.email.repository.MailBoxRepository;
 import com.example.email.service.EmailService;
 import com.example.email.service.SendStrategy;
 import com.example.email.util.EmailConfiguration;
+import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
+import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.oauth2.TokenResponse;
 import com.google.api.client.googleapis.auth.oauth2.GoogleRefreshTokenRequest;
+import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
-import jakarta.mail.BodyPart;
 import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMultipart;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -32,71 +31,47 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 @Service
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
-    public final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
-    public final JsonFactory JSON_FACTORY = new GsonFactory();
+    private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
+    private static final JsonFactory JSON_FACTORY = new GsonFactory();
     private final MailBoxRepository mailBoxRepository;
     private final List<SendStrategy> listOfStrategies;
     @Value("${google-client.id}")
-    private String GOOGLE_CLIENT_ID;
+    private String googleClientId;
 
     @Value("${google-client.secret}")
-    private String GOOGLE_CLIENT_SECRET;
+    private String googleClientSecret;
+    @Value("${google-client.callback-uri}")
+    private String googleCallBackUri;
 
     private SendStrategy sendStrategy;
 
     @Override
     public Email sendEmail(Email email, String login)
             throws MessagingException, UnsupportedEncodingException {
-        var mailBox =
-                mailBoxRepository.findByEmailAddressAndUserLogin(email.getSenderEmail(), login)
-                        .orElseThrow(() -> new MailboxNotFoundException(
-                                String.format("Mail box not found %s", email.getSenderEmail())));
-
-        specifyStrategy(email.getSenderEmail(), login);
+        MailBox mailBox = findMailBox(email.getSenderEmail(), login);
+        specifyStrategyByMailBox(mailBox);
         return sendStrategy.sendWithStrategyEmail(email, mailBox);
     }
 
     @Override
-    public MailBox addEmailConfiguration(MailBox mailBox) throws MessagingException {
-        checkIfMailBoxExist(mailBox.getEmailAddress(), mailBox.getUser().getLogin());
-        String domainPart = getEmailDomain(mailBox.getEmailAddress());
-        Optional<EmailConfiguration> appropriateConfig =
-                Arrays.stream(EmailConfiguration.values())
-                        .filter(config -> config.getDomainName().equalsIgnoreCase(domainPart))
-                        .findFirst();
-        if (appropriateConfig.isPresent()) {
-            var emailConfig = appropriateConfig.get();
-            mailBox.setEmailConfiguration(emailConfig);
-            if (emailConfig.equals(EmailConfiguration.GMAIL) &&
-                    (mailBox.getRefreshToken() == null || mailBox.getRefreshToken().isEmpty())) {
-                throw new InvalidRefreshToken("Refresh token is required");
-            }
-            checkIsPasswordCorrect(mailBox);
-            mailBoxRepository.save(mailBox);
-            return mailBox;
-        }
-        throw new InvalidEmailDomainException(
-                String.format("the provided domainpart %s is not supported", domainPart));
-    }
+    public MailBox addEmailConfiguration(MailBox mailBox) throws MessagingException, IOException {
+        checkIfMailBoxExists(mailBox.getEmailAddress(), mailBox.getUser().getLogin());
+        String domainPart = extractEmailDomain(mailBox.getEmailAddress());
+        EmailConfiguration emailConfig = findEmailConfiguration(domainPart);
 
-    private void checkIsPasswordCorrect(MailBox mailBox) throws MessagingException {
-        specifyStrategyByMailBox(mailBox);
-        sendStrategy.checkIsPasswordCorrect(mailBox);
-
-    }
-
-    private void checkIfMailBoxExist(String emailAddress, String login) {
-        var mailbox = mailBoxRepository.findByEmailAddressAndUserLogin(emailAddress, login);
-        if (mailbox.isPresent()) {
-            throw new MailBoxAlreadyExistsException(
-                    String.format("Email box %s is already used", emailAddress));
+        mailBox.setEmailConfiguration(emailConfig);
+        if (emailConfig == EmailConfiguration.GMAIL) {
+            getAccessToken(mailBox);
         }
 
+        validateCredentials(mailBox);
+        mailBoxRepository.save(mailBox);
+        return mailBox;
     }
+
 
     @Transactional
     @Override
@@ -110,43 +85,47 @@ public class EmailServiceImpl implements EmailService {
                 mailbox.setAccessSmtp(response.getAccessToken());
                 mailBoxRepository.save(mailbox);
             } catch (IOException e) {
-                System.err.println(
-                        "Failed to refresh token for email: " + mailbox.getEmailAddress());
+                System.err.printf("Failed to refresh token for email: %s%n",
+                        mailbox.getEmailAddress());
                 e.printStackTrace();
             }
         }
     }
 
-    private TokenResponse refreshAccessToken(String refreshToken) throws IOException {
-        TokenResponse response = new GoogleRefreshTokenRequest(
-                HTTP_TRANSPORT,
-                JSON_FACTORY,
-                refreshToken,
-                GOOGLE_CLIENT_ID,
-                GOOGLE_CLIENT_SECRET)
-                .execute();
-        System.out.println("Access token: " + response.getAccessToken());
-
-        return response;
+    private MailBox findMailBox(String emailAddress, String login) {
+        return mailBoxRepository.findByEmailAddressAndUserLogin(emailAddress, login)
+                .orElseThrow(() -> new MailboxNotFoundException(
+                        "Mail box not found for email: " + emailAddress));
     }
 
+    private void validateCredentials(MailBox mailBox) throws MessagingException {
+        specifyStrategyByMailBox(mailBox);
+        sendStrategy.checkIsPasswordCorrect(mailBox);
+    }
 
-    private String getEmailDomain(String emailAddress) {
+    private void checkIfMailBoxExists(String emailAddress, String login) {
+        mailBoxRepository.findByEmailAddressAndUserLogin(emailAddress, login)
+                .ifPresent(mailbox -> {
+                    throw new MailBoxAlreadyExistsException(
+                            "Email box already exists: " + emailAddress);
+                });
+    }
+
+    private EmailConfiguration findEmailConfiguration(String domainPart) {
+        return Arrays.stream(EmailConfiguration.values())
+                .filter(config -> config.getDomainName().equalsIgnoreCase(domainPart))
+                .findFirst()
+                .orElseThrow(
+                        () -> new InvalidEmailDomainException("Unsupported domain: " + domainPart));
+    }
+
+    private String extractEmailDomain(String emailAddress) {
         Pattern pattern = Pattern.compile("(?<=@)[^.]+(?=\\.)");
         Matcher matcher = pattern.matcher(emailAddress);
         if (matcher.find()) {
             return matcher.group();
-        } else {
-            throw new IllegalArgumentException("Invalid email address format: " + emailAddress);
         }
-    }
-
-    public void specifyStrategy(String senderEmail, String login) {
-        MailBox mailBox = mailBoxRepository.findByEmailAddressAndUserLogin(senderEmail, login)
-                .orElseThrow(() -> new MailboxNotFoundException(
-                        "Sender email not found: " + senderEmail));
-
-        specifyStrategyByMailBox(mailBox);
+        throw new IllegalArgumentException("Invalid email address format: " + emailAddress);
     }
 
     private void specifyStrategyByMailBox(MailBox mailBox) {
@@ -161,27 +140,31 @@ public class EmailServiceImpl implements EmailService {
                         "No SendStrategy found for: " + strategyBeanName));
     }
 
-
-    public String getTextFromMimeMultipart2(
-            MimeMultipart mimeMultipart) throws MessagingException, IOException {
-        String result = "";
-        int count = mimeMultipart.getCount();
-        for (int i = 0; i < count; i++) {
-            BodyPart bodyPart = mimeMultipart.getBodyPart(i);
-            if (bodyPart.isMimeType("text/plain")) {
-
-                result = result + "\n" + bodyPart.getContent();
-                break;
-
-            } else if (bodyPart.isMimeType("text/html")) {
-                String html = (String) bodyPart.getContent();
-                result = result + "\n" + html; //org.jsoup.Jsoup.parse(html).text();
-            } else if (bodyPart.getContent() instanceof MimeMultipart) {
-                result = result + getTextFromMimeMultipart2((MimeMultipart) bodyPart.getContent());
-
-            }
-        }
-        return result;
+    private TokenResponse refreshAccessToken(String refreshToken) throws IOException {
+        return new GoogleRefreshTokenRequest(HTTP_TRANSPORT, JSON_FACTORY, refreshToken,
+                googleClientId, googleClientSecret)
+                .execute();
     }
 
+    private void getAccessToken(MailBox mailBox) throws IOException {
+        HttpTransport httpTransport = new NetHttpTransport();
+        JsonFactory jsonFactory = new GsonFactory();
+
+        String tokenServerUrl = "https://accounts.google.com/o/oauth2/token";
+
+        AuthorizationCodeTokenRequest
+                request = new AuthorizationCodeTokenRequest(httpTransport, jsonFactory,
+                new GenericUrl(tokenServerUrl), mailBox.getAccessSmtp());
+
+        request.setClientAuthentication(
+                new ClientParametersAuthentication(googleClientId, googleClientSecret));
+        request.setRedirectUri(googleCallBackUri);
+        TokenResponse response = request.execute();
+
+        mailBox.setAccessSmtp(response.getAccessToken());
+        mailBox.setRefreshToken(response.getRefreshToken());
+        System.out.println("Access Token: " + response.getAccessToken());
+        System.out.println("Refresh Token: " + response.getRefreshToken());
+        System.out.println("Expires In: " + response.getExpiresInSeconds() + " seconds");
+    }
 }

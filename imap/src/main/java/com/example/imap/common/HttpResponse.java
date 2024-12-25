@@ -1,4 +1,4 @@
-package com.example.imap.domain;
+package com.example.imap.common;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;

@@ -3,6 +3,7 @@ package com.example.imap.service.impl;
 
 import com.example.imap.domain.MailBox;
 import com.example.imap.exception.InvalidEmailReaderException;
+import com.example.imap.exception.MoveFolderException;
 import com.example.imap.exception.PropertiesNotFoundException;
 import com.example.imap.exception.ReadException;
 import com.example.imap.repository.MailBoxRepository;
@@ -40,19 +41,6 @@ public class ImapServiceImpl implements ImapService {
     private final MailBoxRepository mailBoxRepository;
     private Properties imapProperties;
 
-
-    public static Folder getFolderFromStore(Store store, String folderName, int type) throws MessagingException {
-        Folder[] folders = store.getDefaultFolder().list("*");
-        for (Folder folder : folders) {
-            if ((folder.getType() & Folder.HOLDS_MESSAGES) != 0) {
-                System.out.println(folder.getFullName() + ": " + folder.getMessageCount());
-            }
-        }
-        Folder folder = store.getFolder(folderName);
-        folder.open(type);
-        return folder;
-    }
-
     public static SearchTerm getMessagesSearchTerm() {
         Date yesterdayDate = new Date(new Date().getTime() - (1000L * 60 * 60 * 24 * 7));
         return new ReceivedDateTerm(ComparisonTerm.GT, yesterdayDate);
@@ -65,7 +53,6 @@ public class ImapServiceImpl implements ImapService {
         fetchProfile.add("X-mailer");
         return fetchProfile;
     }
-
 
     private static void closeFolder(Folder folder) {
         if (folder != null && folder.isOpen()) {
@@ -87,15 +74,24 @@ public class ImapServiceImpl implements ImapService {
         }
     }
 
-    private Store getImapStore(String account, String login) throws Exception {
+    @Override
+    public Folder getFolderFromStore(Store store, String folderName, int type)
+            throws MessagingException {
+        Folder folder = store.getFolder(folderName);
+        folder.open(type);
+        return folder;
+    }
+
+    @Override
+    public Store getImapStore(String account, String login) throws Exception {
         var mailbox = mailBoxRepository.findByEmailAddressAndUserLogin(account, login).get();
         var imapConfig = mailbox.getEmailConfiguration();
         setProperties(imapConfig.getImapHost());
         Session session = Session.getInstance(imapProperties);
         Store store = session.getStore("imap");
-        try{
+        try {
             store.connect(imapConfig.getImapHost(), account, mailbox.getAccessSmtp());
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new ReadException(e.getMessage());
         }
         return store;
@@ -130,7 +126,8 @@ public class ImapServiceImpl implements ImapService {
         return messages;
     }
 
-    private Message getEmail(String account, String folderName, int msgnum, String login) throws Exception {
+    private Message getEmail(String account, String folderName, int msgnum, String login)
+            throws Exception {
         Store store = getImapStore(account, login);
         Folder folder = getFolderFromStore(store, folderName, Folder.READ_WRITE);
         var message = folder.getMessage(msgnum);
@@ -139,7 +136,8 @@ public class ImapServiceImpl implements ImapService {
     }
 
     @Override
-    public DetailedReceivedEmail getSpecificEmail(String account, String folderName, int msgnum, String login)
+    public DetailedReceivedEmail getSpecificEmail(String account, String folderName, int msgnum,
+                                                  String login)
             throws Exception {
         isUserAllowedToReadEmail(login, account);
         Message message = getEmail(account, folderName, msgnum, login);
@@ -177,10 +175,16 @@ public class ImapServiceImpl implements ImapService {
         Message[] messages = new Message[] {source.getMessage(msgnum)};
 
         Folder destination = getFolderFromStore(store, destinationFolder, Folder.READ_WRITE);
-        source.copyMessages(messages, destination);
+        try {
+            source.copyMessages(messages, destination);
+        } catch (Exception e) {
+            throw new MoveFolderException(String.format("Error while moving email from %s to %s",
+                    sourceFolder, destinationFolder));
+        }
         source.close();
         destination.close();
     }
+
 
     @Override
     public boolean createFolder(String folderName, String account, String login) throws Exception {
@@ -196,8 +200,10 @@ public class ImapServiceImpl implements ImapService {
         closeStore(store);
         return false;
     }
+
     private String[] getFolderNames(Store store) throws MessagingException {
-        return Arrays.stream(store.getDefaultFolder().list("*")).map(Folder::getFullName).toArray(String[]::new);
+        return Arrays.stream(store.getDefaultFolder().list("*")).map(Folder::getFullName)
+                .toArray(String[]::new);
     }
 
     @Override
@@ -239,9 +245,11 @@ public class ImapServiceImpl implements ImapService {
         return message.getContent().toString();
     }
 
-    private void isUserAllowedToReadEmail(String login, String account){
-        mailBoxRepository.findByEmailAddressAndUserLogin(account, login).orElseThrow(() -> new InvalidEmailReaderException("this is not your email"));
+    private void isUserAllowedToReadEmail(String login, String account) {
+        mailBoxRepository.findByEmailAddressAndUserLogin(account, login)
+                .orElseThrow(() -> new InvalidEmailReaderException("this is not your email"));
     }
+
     public String getTextFromMimeMultipart(
             MimeMultipart mimeMultipart) throws MessagingException, IOException {
         String result = "";
