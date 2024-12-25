@@ -9,5 +9,7 @@ import java.io.UnsupportedEncodingException;
 public interface SendStrategy {
     Email sendWithStrategyEmail(Email email, MailBox mailBox)
             throws MessagingException, UnsupportedEncodingException;
+
     void checkIsPasswordCorrect(MailBox mailBox) throws MessagingException;
+
 }

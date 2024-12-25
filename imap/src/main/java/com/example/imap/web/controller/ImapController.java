@@ -1,8 +1,7 @@
 package com.example.imap.web.controller;
 
 
-import com.example.imap.domain.HttpResponse;
-import com.example.imap.domain.MailBox;
+import com.example.imap.common.HttpResponse;
 import com.example.imap.service.ImapService;
 import com.example.imap.web.dto.MailBoxDto;
 import com.example.imap.web.mapper.EmailMapper;
@@ -15,13 +14,11 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -33,7 +30,8 @@ public class ImapController {
 
     @PostMapping("/{account}")
     public ResponseEntity<HttpResponse> readEmails(@PathVariable String account,
-                                                   @RequestBody Map<String, String> folderNameMap, Principal principal)
+                                                   @RequestBody Map<String, String> folderNameMap,
+                                                   Principal principal)
             throws Exception {
         String folderName = folderNameMap.get("folderName");
         var messages = imapService.getEmails(account, folderName, principal.getName());
@@ -54,8 +52,10 @@ public class ImapController {
 
     @PostMapping("/{account}/{msgnum}")
     public ResponseEntity<HttpResponse> getSpecificEmail(@PathVariable String account,
-                                                         @RequestBody Map<String, String> folderNameMap,
-                                                         @PathVariable int msgnum, Principal principal)
+                                                         @RequestBody
+                                                         Map<String, String> folderNameMap,
+                                                         @PathVariable int msgnum,
+                                                         Principal principal)
             throws Exception {
         String folderName = folderNameMap.get("folderName");
         var email = imapService.getSpecificEmail(account, folderName, msgnum, principal.getName());

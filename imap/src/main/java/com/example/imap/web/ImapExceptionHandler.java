@@ -1,6 +1,7 @@
 package com.example.imap.web;
 
 import com.example.imap.exception.InvalidEmailReaderException;
+import com.example.imap.exception.MoveFolderException;
 import com.example.imap.exception.PropertiesNotFoundException;
 import com.example.imap.exception.ReadException;
 import com.example.imap.exception.ServiceException;
@@ -17,7 +18,7 @@ public class ImapExceptionHandler {
     public ErrorResponse notFoundExceptionHandler(RuntimeException runtimeException) {
         return new ErrorResponse(runtimeException.getMessage());
     }
-    @ExceptionHandler({InvalidEmailReaderException.class, ServiceException.class, ReadException.class})
+    @ExceptionHandler({InvalidEmailReaderException.class, ServiceException.class, ReadException.class, MoveFolderException.class})
     @ResponseStatus(code = HttpStatus.BAD_REQUEST)
     public ErrorResponse invalidParametersExceptionHandler(RuntimeException runtimeException) {
         return new ErrorResponse(runtimeException.getLocalizedMessage());
