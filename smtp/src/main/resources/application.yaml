@@ -24,5 +24,8 @@ service:
 google-client:
   id: ${GOOGLE_CLIENT_ID}
   secret: ${GOOGLE_CLIENT_SECRET}
+  callback-uri: http://67.207.79.91.nip.io:9090/api/v1/users
+encryption:
+  secret: ${ENCRYPTION_SECRET}
 
 
