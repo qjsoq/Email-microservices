@@ -6,6 +6,7 @@ import com.example.email.exception.InvalidEmailDomainException;
 import com.example.email.exception.MailBoxAlreadyExistsException;
 import com.example.email.exception.MailboxNotFoundException;
 import com.example.email.exception.StrategyNotFoundException;
+import com.example.email.repository.EmailRepository;
 import com.example.email.repository.MailBoxRepository;
 import com.example.email.service.EmailService;
 import com.example.email.service.SendStrategy;
@@ -30,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.web.multipart.MultipartFile;
 
 
 @Service
@@ -39,6 +40,7 @@ public class EmailServiceImpl implements EmailService {
     private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
     private static final JsonFactory JSON_FACTORY = new GsonFactory();
     private final MailBoxRepository mailBoxRepository;
+    private final EmailRepository emailRepository;
     private final List<SendStrategy> listOfStrategies;
     @Value("${google-client.id}")
     private String googleClientId;
@@ -51,11 +53,14 @@ public class EmailServiceImpl implements EmailService {
     private SendStrategy sendStrategy;
 
     @Override
-    public Email sendEmail(Email email, String login)
+    public Email sendEmail(Email email, String login, MultipartFile file)
             throws MessagingException, UnsupportedEncodingException {
         MailBox mailBox = findMailBox(email.getSenderEmail(), login);
         specifyStrategyByMailBox(mailBox);
-        return sendStrategy.sendWithStrategyEmail(email, mailBox);
+        var sentEmail = sendStrategy.sendWithStrategyEmail(email, mailBox, file);
+        sentEmail.setUser(mailBox.getUser());
+        emailRepository.save(sentEmail);
+        return sentEmail;
     }
 
     @Override

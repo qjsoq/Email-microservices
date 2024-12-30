@@ -11,6 +11,8 @@ import java.util.List;
 
 public interface ImapService {
     Message[] getEmails(String account, String folderName, String login) throws Exception;
+    Message getEmail(String account, String folderName, int msgnum, String login)
+            throws Exception;
 
     Store getImapStore(String account, String login) throws Exception;
 

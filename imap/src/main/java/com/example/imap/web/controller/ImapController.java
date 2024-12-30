@@ -5,13 +5,18 @@ import com.example.imap.common.HttpResponse;
 import com.example.imap.service.ImapService;
 import com.example.imap.web.dto.MailBoxDto;
 import com.example.imap.web.mapper.EmailMapper;
+import jakarta.mail.BodyPart;
+import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMultipart;
+import java.io.ByteArrayOutputStream;
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -72,4 +77,39 @@ public class ImapController {
     public ResponseEntity<List<MailBoxDto>> getMailBoxes(Principal principal) {
         return ResponseEntity.ok(imapService.getMailBoxes(principal.getName()));
     }
+
+    @PostMapping("/{account}/{msgnum}/attachments/{attachmentId}")
+    public ResponseEntity<byte[]> downloadAttachment(
+            @RequestBody Map<String, String> folderNameMap,
+            @PathVariable String account,
+            @PathVariable int msgnum,
+            @PathVariable String attachmentId,
+            Principal principal) {
+        try {
+            String folderName = folderNameMap.get("folderName");
+            Message message = imapService.getEmail(account, folderName, msgnum, principal.getName());
+            if (message.getContent() instanceof MimeMultipart mimeMultipart) {
+                BodyPart bodyPart =
+                        mimeMultipart.getBodyPart(Integer.parseInt(attachmentId.split("-")[1]));
+                if (bodyPart != null) {
+                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                    bodyPart.getInputStream().transferTo(outputStream);
+                    byte[] data = outputStream.toByteArray();
+
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + bodyPart.getFileName() + "\"");
+                    headers.setContentType(org.springframework.http.MediaType.parseMediaType(
+                            bodyPart.getContentType()));
+
+                    return new ResponseEntity<>(data, headers, HttpStatus.OK);
+                }
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }
+

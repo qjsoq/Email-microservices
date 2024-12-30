@@ -1,6 +1,7 @@
 package com.example.imap.service.impl;
 
 
+import com.example.imap.domain.EmailAttachment;
 import com.example.imap.domain.MailBox;
 import com.example.imap.exception.InvalidEmailReaderException;
 import com.example.imap.exception.MoveFolderException;
@@ -17,15 +18,18 @@ import jakarta.mail.Flags;
 import jakarta.mail.Folder;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.UIDFolder;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.search.ComparisonTerm;
 import jakarta.mail.search.ReceivedDateTerm;
 import jakarta.mail.search.SearchTerm;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -126,7 +130,8 @@ public class ImapServiceImpl implements ImapService {
         return messages;
     }
 
-    private Message getEmail(String account, String folderName, int msgnum, String login)
+    @Override
+    public Message getEmail(String account, String folderName, int msgnum, String login)
             throws Exception {
         Store store = getImapStore(account, login);
         Folder folder = getFolderFromStore(store, folderName, Folder.READ_WRITE);
@@ -136,11 +141,12 @@ public class ImapServiceImpl implements ImapService {
     }
 
     @Override
-    public DetailedReceivedEmail getSpecificEmail(String account, String folderName, int msgnum,
-                                                  String login)
+    public DetailedReceivedEmail getSpecificEmail(String account, String folderName, int msgnum, String login)
             throws Exception {
         isUserAllowedToReadEmail(login, account);
         Message message = getEmail(account, folderName, msgnum, login);
+
+        // Extract sender email
         Address[] fromAddresses = message.getFrom();
         String senderEmail = null;
         if (fromAddresses != null && fromAddresses.length > 0) {
@@ -156,16 +162,39 @@ public class ImapServiceImpl implements ImapService {
         }
 
         String subject = message.getSubject();
-
         String body = getTextFromMessage(message);
+
+        List<EmailAttachment> attachments = getAttachmentMetadata(message);
+
         return DetailedReceivedEmail.builder()
                 .body(body)
                 .receiverEmail(receiverEmail)
                 .senderEmail(senderEmail)
                 .subject(subject)
                 .receivedDate(message.getReceivedDate())
+                .attachments(attachments)
                 .build();
     }
+
+    private List<EmailAttachment> getAttachmentMetadata(Message message) throws Exception {
+        List<EmailAttachment> attachments = new ArrayList<>();
+        if (message.getContent() instanceof MimeMultipart mimeMultipart) {
+            for (int i = 0; i < mimeMultipart.getCount(); i++) {
+                BodyPart bodyPart = mimeMultipart.getBodyPart(i);
+                if (Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) ||
+                        bodyPart.getFileName() != null) {
+                    MimeBodyPart mimeBodyPart = (MimeBodyPart) bodyPart;
+                    EmailAttachment attachment = new EmailAttachment();
+                    attachment.setFileName(mimeBodyPart.getFileName());
+                    attachment.setMimeType(mimeBodyPart.getContentType());
+                    attachment.setAttachmentId("attachment-" + i); // Generate a unique ID
+                    attachments.add(attachment);
+                }
+            }
+        }
+        return attachments;
+    }
+
 
     @Override
     public void moveEmail(String account, String sourceFolder, String destinationFolder,
@@ -271,4 +300,5 @@ public class ImapServiceImpl implements ImapService {
         }
         return result;
     }
+
 }

@@ -6,6 +6,7 @@ import java.io.UnsupportedEncodingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 @RequiredArgsConstructor
 @Component
@@ -21,9 +22,9 @@ public class SimpleEmailSender extends EmailSenderTemplate {
     }
 
     @Override
-    protected void sendEmail(Email email, String login) throws MessagingException, UnsupportedEncodingException {
+    protected void sendEmail(Email email, String login, MultipartFile file) throws MessagingException, UnsupportedEncodingException {
         log.info("Sending simple email to: " + email.getRecipientEmail());
-        emailService.sendEmail(email, login);
+        emailService.sendEmail(email, login, file);
     }
 
     @Override
