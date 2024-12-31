@@ -7,4 +7,6 @@ import lombok.Data;
 public class EmailDto {
     private String subject;
     private LocalDateTime sentAt;
+    private String recipientEmail;
+
 }

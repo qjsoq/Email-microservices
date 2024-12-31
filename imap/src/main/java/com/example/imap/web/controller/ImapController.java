@@ -3,6 +3,7 @@ package com.example.imap.web.controller;
 
 import com.example.imap.common.HttpResponse;
 import com.example.imap.service.ImapService;
+import com.example.imap.web.dto.EmailDto;
 import com.example.imap.web.dto.MailBoxDto;
 import com.example.imap.web.mapper.EmailMapper;
 import jakarta.mail.BodyPart;
@@ -33,13 +34,13 @@ public class ImapController {
     private final EmailMapper emailMapper;
     private final ImapService imapService;
 
-    @PostMapping("/{account}")
-    public ResponseEntity<HttpResponse> readEmails(@PathVariable String account,
+    @PostMapping("/{account}/num-of-mails/{numOfmails}")
+    public ResponseEntity<HttpResponse> readEmails(@PathVariable String account, @PathVariable int numOfmails,
                                                    @RequestBody Map<String, String> folderNameMap,
                                                    Principal principal)
             throws Exception {
         String folderName = folderNameMap.get("folderName");
-        var messages = imapService.getEmails(account, folderName, principal.getName());
+        var messages = imapService.getEmails(account, folderName, principal.getName(), numOfmails);
         return ResponseEntity.ok(HttpResponse.builder()
                 .httpStatus(HttpStatus.OK)
                 .code(200)
@@ -72,12 +73,10 @@ public class ImapController {
                 .timeStamp(LocalDateTime.now().toString())
                 .build());
     }
-
     @GetMapping("/mailbox")
     public ResponseEntity<List<MailBoxDto>> getMailBoxes(Principal principal) {
         return ResponseEntity.ok(imapService.getMailBoxes(principal.getName()));
     }
-
     @PostMapping("/{account}/{msgnum}/attachments/{attachmentId}")
     public ResponseEntity<byte[]> downloadAttachment(
             @RequestBody Map<String, String> folderNameMap,
@@ -110,6 +109,11 @@ public class ImapController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+    @GetMapping
+    public ResponseEntity<List<EmailDto>> getSavedMails(Principal principal) {
+        return ResponseEntity.ok(imapService.getSavedEmails(principal.getName()).stream()
+                .map(emailMapper::toEmailDto).toList());
     }
 }
 

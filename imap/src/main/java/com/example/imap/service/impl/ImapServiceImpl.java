@@ -1,16 +1,20 @@
 package com.example.imap.service.impl;
 
 
+import com.example.imap.domain.Email;
 import com.example.imap.domain.EmailAttachment;
 import com.example.imap.domain.MailBox;
 import com.example.imap.exception.InvalidEmailReaderException;
 import com.example.imap.exception.MoveFolderException;
 import com.example.imap.exception.PropertiesNotFoundException;
 import com.example.imap.exception.ReadException;
+import com.example.imap.repository.EmailRepository;
 import com.example.imap.repository.MailBoxRepository;
 import com.example.imap.service.ImapService;
 import com.example.imap.web.dto.DetailedReceivedEmail;
+import com.example.imap.web.dto.EmailDto;
 import com.example.imap.web.dto.MailBoxDto;
+import com.example.imap.web.mapper.EmailMapper;
 import jakarta.mail.Address;
 import jakarta.mail.BodyPart;
 import jakarta.mail.FetchProfile;
@@ -41,6 +45,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ImapServiceImpl implements ImapService {
+    private final EmailRepository emailRepository;
     private final List<Properties> listOfImapProperties;
     private final MailBoxRepository mailBoxRepository;
     private Properties imapProperties;
@@ -114,7 +119,7 @@ public class ImapServiceImpl implements ImapService {
 
 
     @Override
-    public Message[] getEmails(String account, String folderName, String login) throws Exception {
+    public Message[] getEmails(String account, String folderName, String login, int mailNum) throws Exception {
         isUserAllowedToReadEmail(login, account);
         Store store = getImapStore(account, login);
         Folder folder = getFolderFromStore(store, folderName, Folder.READ_ONLY);
@@ -122,7 +127,7 @@ public class ImapServiceImpl implements ImapService {
         if (messageCount == 0) {
             return new Message[0];
         }
-        int start = Math.max(1, messageCount - 30);
+        int start = Math.max(1, messageCount - mailNum);
         Message[] messages = folder.getMessages(start, messageCount);
         folder.fetch(messages, getFetchProfile());
         closeFolder(folder);
@@ -262,6 +267,11 @@ public class ImapServiceImpl implements ImapService {
                 .collect(Collectors.toList());
 
         return mailBoxDtos;
+    }
+
+    @Override
+    public List<Email> getSavedEmails(String login) {
+        return emailRepository.findByUserLogin(login);
     }
 
 

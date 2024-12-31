@@ -9,4 +9,5 @@ public interface StorageService {
     Resource findByKey(String objectKey, String bucket);
 
     void deleteByKey(String objectKey, String bucket);
+    boolean canConnectToBucket(String bucketName);
 }

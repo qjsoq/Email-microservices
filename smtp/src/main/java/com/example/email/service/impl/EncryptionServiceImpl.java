@@ -8,17 +8,17 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EncryptionServiceImpl implements EncryptionService {
 
     private static final String ENCRYPTION_ALGORITHM = "AES";
-    private static final String STATIC_KEY = "uQAxYk9OlKnH7dGfVJWFgTwYTr59vRIgf1O2o12KbTE=";
     private final SecretKey secretKey;
     @Autowired
-    public EncryptionServiceImpl() {
-        this.secretKey = new SecretKeySpec(Base64.getDecoder().decode(STATIC_KEY), ENCRYPTION_ALGORITHM);
+    public EncryptionServiceImpl(@Value("${encryption.secret}") String encryptionKey) {
+        this.secretKey = new SecretKeySpec(Base64.getDecoder().decode(encryptionKey), ENCRYPTION_ALGORITHM);
     }
 
     @Override

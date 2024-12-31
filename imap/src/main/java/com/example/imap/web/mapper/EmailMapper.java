@@ -3,6 +3,7 @@ package com.example.imap.web.mapper;
 
 import com.example.imap.domain.Email;
 import com.example.imap.web.dto.EmailCreationDto;
+import com.example.imap.web.dto.EmailDto;
 import com.example.imap.web.dto.ReceivedEmail;
 import jakarta.mail.Address;
 import jakarta.mail.Message;
@@ -28,6 +29,7 @@ public interface EmailMapper {
     }
 
     Email toEmail(EmailCreationDto emailCreationDto);
+    EmailDto toEmailDto(Email email);
 
 
     @Mapping(source = "from", target = "personal", qualifiedByName = "extractPersonal")

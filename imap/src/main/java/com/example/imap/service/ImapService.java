@@ -1,7 +1,9 @@
 package com.example.imap.service;
 
 
+import com.example.imap.domain.Email;
 import com.example.imap.web.dto.DetailedReceivedEmail;
+import com.example.imap.web.dto.EmailDto;
 import com.example.imap.web.dto.MailBoxDto;
 import jakarta.mail.Folder;
 import jakarta.mail.Message;
@@ -10,7 +12,7 @@ import jakarta.mail.Store;
 import java.util.List;
 
 public interface ImapService {
-    Message[] getEmails(String account, String folderName, String login) throws Exception;
+    Message[] getEmails(String account, String folderName, String login, int mailNum) throws Exception;
     Message getEmail(String account, String folderName, int msgnum, String login)
             throws Exception;
 
@@ -29,5 +31,6 @@ public interface ImapService {
     boolean createFolder(String folderName, String account, String login) throws Exception;
 
     List<MailBoxDto> getMailBoxes(String login);
+    List<Email> getSavedEmails(String login);
 
 }

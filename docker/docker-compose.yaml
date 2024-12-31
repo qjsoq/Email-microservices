@@ -1,4 +1,4 @@
-version: '4'
+version: '3.8'
 services:
   mysql:
     image: mysql:8.3.0
@@ -8,3 +8,16 @@ services:
       MYSQL_ROOT_PASSWORD: mailbox
     ports:
       - "3306:3306"
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: minio
+    command: server /mnt/data --console-address ":9090"
+    ports:
+      - "9000:9000"
+      - "9090:9090"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin123
+    volumes:
+      - ./data:/mnt/data
