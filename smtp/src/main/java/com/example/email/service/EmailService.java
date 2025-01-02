@@ -11,11 +11,12 @@ import org.springframework.web.multipart.MultipartFile;
 public interface EmailService {
 
     Email sendEmail(Email email, String login, MultipartFile file)
-            throws MessagingException, UnsupportedEncodingException;
+            throws MessagingException, IOException;
 
 
     MailBox addEmailConfiguration(MailBox mailBox) throws MessagingException, IOException;
 
     @Transactional
     void refreshGmailTokens();
+    String extractEmailDomain(String emailAddress);
 }

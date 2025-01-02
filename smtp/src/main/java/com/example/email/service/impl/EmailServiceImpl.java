@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,17 +61,20 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public Email sendEmail(Email email, String login, MultipartFile file)
-            throws MessagingException, UnsupportedEncodingException {
+            throws MessagingException, IOException {
         MailBox mailBox = findMailBox(email.getSenderEmail(), login);
         specifyStrategyByMailBox(mailBox);
         var sentEmail = sendStrategy.sendWithStrategyEmail(email, mailBox, file);
         if(file != null && !file.isEmpty()){
-            var fileKey = UUID.randomUUID().toString();
+            Tika tika = new Tika();
+            String detectedType = tika.detect(file.getBytes()).split("/")[1];
+            var fileKey = login + "/" + UUID.randomUUID().toString() + "." + detectedType;
             try {
                 storageService.uploadFile(
                         file.getBytes(),
                         fileKey,
                         bucket);
+                System.out.println("File uploaded successfully");
             } catch (IOException e) {
                 var fileName = file.getOriginalFilename();
                 throw new SendException("Failed to upload file %s".formatted(fileName));
@@ -144,8 +148,8 @@ public class EmailServiceImpl implements EmailService {
                 .orElseThrow(
                         () -> new InvalidEmailDomainException("Unsupported domain: " + domainPart));
     }
-
-    private String extractEmailDomain(String emailAddress) {
+    @Override
+    public String extractEmailDomain(String emailAddress) {
         Pattern pattern = Pattern.compile("(?<=@)[^.]+(?=\\.)");
         Matcher matcher = pattern.matcher(emailAddress);
         if (matcher.find()) {

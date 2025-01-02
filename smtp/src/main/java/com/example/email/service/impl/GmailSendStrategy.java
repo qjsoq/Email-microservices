@@ -42,7 +42,6 @@ public class GmailSendStrategy implements SendStrategy {
     @Override
     public Email sendWithStrategyEmail(Email email, MailBox mailBox, MultipartFile file) {
         Session session = createSession();
-        session.setDebug(true);
 
         try {
             MimeMessage msg = createMessage(session, email, mailBox);

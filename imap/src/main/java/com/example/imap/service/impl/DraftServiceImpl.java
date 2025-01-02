@@ -41,15 +41,13 @@ public class DraftServiceImpl implements DraftService {
         var folders = store.getDefaultFolder().list("*");
         var draftFolder = Arrays.stream(folders)
                 .filter(folder -> {
-                    System.out.println(folder.getFullName().toLowerCase());
-                    System.out.println(folder.getFullName().toLowerCase().contains("draft"));
-                    return folder.getName().toLowerCase().contains("draft");
+                    String folderName = folder.getName().toLowerCase();
+                    return folderName.contains("draft") || folderName.contains("чернетки");
                 })
                 .findFirst()
                 .orElseThrow(() -> new Exception("Draft folder not found"));
 
         draftFolder.open(Folder.READ_WRITE);
-
 
         var mimeMessage = new MimeMessage(session);
         mimeMessage.setFrom(new InternetAddress(email.getSenderEmail()));
@@ -61,6 +59,7 @@ public class DraftServiceImpl implements DraftService {
         draftFolder.appendMessages(messages);
         draftFolder.close();
     }
+
 
     private void setProperties(String domainName) {
         this.imapProperties = listOfImapProperties.stream()

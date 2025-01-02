@@ -29,13 +29,38 @@ spec:
             - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:
-                  name: google-client-secrets
+                  name: smtp-secrets
                   key: GOOGLE_CLIENT_ID
             - name: GOOGLE_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: google-client-secrets
+                  name: smtp-secrets
                   key: GOOGLE_CLIENT_SECRET
+            - name: AWS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-secrets
+                  key: AWS_ACCESS_KEY
+            - name: AWS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-secrets
+                  key: AWS_SECRET_KEY
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-secrets
+                  key: AWS_REGION
+            - name: AWS_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-secrets
+                  key: AWS_BUCKET
+            - name: ENCRYPTION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-secrets
+                  key: ENCRYPTION_SECRET
 ---
 apiVersion: v1
 kind: Service
@@ -59,8 +84,14 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: google-client-secrets
+  name: smtp-secrets
 type: Opaque
 data:
   GOOGLE_CLIENT_ID: NDk1MDY2NTQwOTktaGh1NWVydDRxbzFoamZobWVjdjJmaWFoOXBxdWJlOHIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20=
   GOOGLE_CLIENT_SECRET: R09DU1BYLXRzcHZHeXJITHpLeVVPRzVUVFplUTFXMWFhNC0=
+  AWS_ACCESS_KEY: QUtJQVNGVUlSSk5NWEZMVDVCVlg=
+  AWS_BUCKET: bXktZW1haWwtYnVja2V0MjAwOTIwMTk=
+  AWS_REGION: ZXUtbm9ydGgtMQ==
+  AWS_SECRET_KEY: VVMrOVBtVkx4VWZ1UEVGKzZBdWpBS0RiTkVNU25rRWthdTFORWo0bQ==
+  ENCRYPTION_SECRET: dVFBeFlrOU9sS25IN2RHZlZKV0ZnVHdZVHI1OXZSSWdmMU8ybzEyS2JURT0=
+

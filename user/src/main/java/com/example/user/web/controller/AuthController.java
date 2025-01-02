@@ -11,7 +11,9 @@ import com.example.user.web.mapper.AuthenticationMapper;
 import com.example.user.web.mapper.UserMapper;
 import jakarta.validation.Valid;
 import java.io.IOException;
+
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -58,5 +61,11 @@ public class AuthController {
     @GetMapping("/validate-token/{token}")
     public ResponseEntity<User> validateToken(@PathVariable String token) {
         return ResponseEntity.ok(userService.validateToken(token));
+    }
+
+    @GetMapping("")
+    public String handleGoogleCallback(@RequestParam("code") String authorizationCode)
+            throws URISyntaxException, IOException {
+        return "Access Token: " + authorizationCode;
     }
 }

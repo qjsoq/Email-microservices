@@ -5,7 +5,7 @@ spring:
     name: api-gateway
 
 server:
-  port: 9091
+  port: 9090
 debug: true
 
 springdoc:

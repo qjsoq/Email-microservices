@@ -14,6 +14,7 @@ import com.example.imap.service.ImapService;
 import com.example.imap.web.dto.DetailedReceivedEmail;
 import com.example.imap.web.dto.EmailDto;
 import com.example.imap.web.dto.MailBoxDto;
+import com.example.imap.web.dto.ReceivedEmail;
 import com.example.imap.web.mapper.EmailMapper;
 import jakarta.mail.Address;
 import jakarta.mail.BodyPart;
@@ -49,6 +50,7 @@ public class ImapServiceImpl implements ImapService {
     private final List<Properties> listOfImapProperties;
     private final MailBoxRepository mailBoxRepository;
     private Properties imapProperties;
+    private final EmailMapper emailMapper;
 
     public static SearchTerm getMessagesSearchTerm() {
         Date yesterdayDate = new Date(new Date().getTime() - (1000L * 60 * 60 * 24 * 7));
@@ -119,20 +121,33 @@ public class ImapServiceImpl implements ImapService {
 
 
     @Override
-    public Message[] getEmails(String account, String folderName, String login, int mailNum) throws Exception {
-        isUserAllowedToReadEmail(login, account);
-        Store store = getImapStore(account, login);
-        Folder folder = getFolderFromStore(store, folderName, Folder.READ_ONLY);
-        int messageCount = folder.getMessageCount();
-        if (messageCount == 0) {
-            return new Message[0];
+    public ReceivedEmail[] getEmails(String account, String folderName, String login, int mailNum) throws Exception {
+        try{
+            isUserAllowedToReadEmail(login, account);
+            Store store = getImapStore(account, login);
+            Folder folder = getFolderFromStore(store, folderName, Folder.READ_ONLY);
+            int messageCount = folder.getMessageCount();
+            if (messageCount == 0) {
+                return new ReceivedEmail[0];
+            }
+            int start = Math.max(1, messageCount - mailNum);
+            Message[] messages = folder.getMessages(start, messageCount);
+            folder.fetch(messages, getFetchProfile());
+            closeFolder(folder);
+            closeStore(store);
+            return Arrays.stream(messages).map((temp) -> {
+                try {
+                    return emailMapper.toReceivedEmail(temp);
+                } catch (MessagingException e) {
+                    throw new RuntimeException(e);
+                }
+            }).toArray(ReceivedEmail[]::new);
+        } catch (Exception e) {
+            return getSavedEmails(login).stream()
+                    .map(emailMapper::toReceivedEmail)
+                    .toArray(com.example.imap.web.dto.ReceivedEmail[]::new);
         }
-        int start = Math.max(1, messageCount - mailNum);
-        Message[] messages = folder.getMessages(start, messageCount);
-        folder.fetch(messages, getFetchProfile());
-        closeFolder(folder);
-        closeStore(store);
-        return messages;
+
     }
 
     @Override

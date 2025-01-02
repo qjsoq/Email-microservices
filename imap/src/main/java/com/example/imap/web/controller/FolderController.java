@@ -6,7 +6,6 @@ import com.example.imap.service.DraftService;
 import com.example.imap.service.ImapService;
 import com.example.imap.web.dto.EmailCreationDto;
 import com.example.imap.web.mapper.EmailMapper;
-import jakarta.validation.Valid;
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -17,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -56,10 +56,9 @@ public class FolderController {
     }
 
     @PostMapping("/add-to-draft")
-    public ResponseEntity<HttpResponse> saveEmailAsDraft(@Valid
-                                                         @RequestBody
-                                                         EmailCreationDto emailCreationDto,
-                                                         Principal principal) throws Exception {
+    public ResponseEntity<HttpResponse> saveEmailAsDraft(
+            @RequestPart(value = "emailCreationDto") EmailCreationDto emailCreationDto,
+            Principal principal) throws Exception {
 
         draftService.saveEmailAsDraft(emailMapper.toEmail(emailCreationDto), principal.getName());
         return ResponseEntity.ok(HttpResponse.builder()

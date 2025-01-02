@@ -34,7 +34,7 @@ public class ImapController {
     private final EmailMapper emailMapper;
     private final ImapService imapService;
 
-    @PostMapping("/{account}/num-of-mails/{numOfmails}")
+        @PostMapping("/{account}/num-of-mails/{numOfmails}")
     public ResponseEntity<HttpResponse> readEmails(@PathVariable String account, @PathVariable int numOfmails,
                                                    @RequestBody Map<String, String> folderNameMap,
                                                    Principal principal)
@@ -46,13 +46,7 @@ public class ImapController {
                 .code(200)
                 .timeStamp(LocalDateTime.now().toString())
                 .path(String.format("/api/v1/read/%s/%s", account, folderName))
-                .data(Map.of("List of emails", Arrays.stream(messages).map((temp) -> {
-                    try {
-                        return emailMapper.toReceivedEmail(temp);
-                    } catch (MessagingException e) {
-                        throw new RuntimeException(e);
-                    }
-                }).toList()))
+                .data(Map.of("List of emails", messages))
                 .build());
     }
 

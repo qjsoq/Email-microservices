@@ -3,6 +3,7 @@ package com.example.email.web.controller;
 import com.example.email.common.HttpResponse;
 import com.example.email.common.HttpResponseEmailBuilder;
 import com.example.email.domain.MailBox;
+import com.example.email.service.EmailSenderTemplate;
 import com.example.email.service.EmailService;
 import com.example.email.service.impl.AwsS3StorageService;
 import com.example.email.web.dto.EmailCreationDto;
@@ -29,16 +30,15 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class EmailController {
     private final EmailService emailService;
+    private final EmailSenderTemplate emailSenderTemplate;
     private final EmailMapper emailMapper;
 
     @PostMapping
     public ResponseEntity<HttpResponse> sendEmail(
             @RequestPart(value ="file", required = false) MultipartFile file,
-            @RequestPart(value = "emailCreationDto") EmailCreationDto emailCreationDto, // Change here
-            Principal principal) throws UnsupportedEncodingException, MessagingException {
-        System.out.println(principal.getName());
-        var email =
-                emailService.sendEmail(emailMapper.toEmail(emailCreationDto), principal.getName(),
+            @RequestPart(value = "emailCreationDto") EmailCreationDto emailCreationDto,
+            Principal principal) throws IOException, MessagingException {
+                emailSenderTemplate.sendEmailTemplate(emailMapper.toEmail(emailCreationDto), principal.getName(),
                         file);
         return ResponseEntity.ok(new HttpResponseEmailBuilder().build());
     }
