@@ -87,11 +87,11 @@ metadata:
   name: smtp-secrets
 type: Opaque
 data:
-  GOOGLE_CLIENT_ID: NDk1MDY2NTQwOTktaGh1NWVydDRxbzFoamZobWVjdjJmaWFoOXBxdWJlOHIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20=
-  GOOGLE_CLIENT_SECRET: R09DU1BYLXRzcHZHeXJITHpLeVVPRzVUVFplUTFXMWFhNC0=
-  AWS_ACCESS_KEY: QUtJQVNGVUlSSk5NWEZMVDVCVlg=
-  AWS_BUCKET: bXktZW1haWwtYnVja2V0MjAwOTIwMTk=
-  AWS_REGION: ZXUtbm9ydGgtMQ==
-  AWS_SECRET_KEY: VVMrOVBtVkx4VWZ1UEVGKzZBdWpBS0RiTkVNU25rRWthdTFORWo0bQ==
+  GOOGLE_CLIENT_ID: <define-your-credentials>
+  GOOGLE_CLIENT_SECRET: <define-your-credentials>
+  AWS_ACCESS_KEY: <define-your-credentials>
+  AWS_BUCKET: <define-your-credentials>
+  AWS_REGION: <define-your-credentials>
+  AWS_SECRET_KEY: <define-your-credentials>
   ENCRYPTION_SECRET: dVFBeFlrOU9sS25IN2RHZlZKV0ZnVHdZVHI1OXZSSWdmMU8ybzEyS2JURT0=
 

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: artamonovdima/emailfront:deploy2
+          image: artamonovdima/emailfront:v2
           ports:
             - containerPort: 80
           env:
