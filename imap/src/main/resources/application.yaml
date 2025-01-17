@@ -21,6 +21,8 @@ springdoc:
         path: /api-docs
 service:
     user-service-url: ${USER_SERVICE_URL}
+encryption:
+    secret: ${ENCRYPTION_SECRET}
 
 
 

@@ -1,4 +1,4 @@
-version: '4'
+version: '3.8'
 services:
   mysql:
     image: mysql:8.3.0
@@ -8,3 +8,79 @@ services:
       MYSQL_ROOT_PASSWORD: mailbox
     ports:
       - "3306:3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  api-gateway:
+    image: artamonovdima/api-gateway:latest
+    ports:
+      - "9090:9090"
+    environment:
+      - USER_SERVICE_URL=http://user-service:8082
+      - IMAP_SERVICE_URL=http://imap-service:8081
+      - SMTP_SERVICE_URL=http://smtp-service:8083
+    depends_on:
+      - user-service
+      - imap-service
+      - smtp-service
+
+  user-service:
+    image: artamonovdima/user:latest
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/mail-db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=mailbox
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+      - IMAP_SERVICE_URL=http://imap-service:8081
+      - SMTP_SERVICE_URL=http://smtp-service:8083
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  imap-service:
+    image: artamonovdima/imap:latest
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/mail-db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=mailbox
+      - USER_SERVICE_URL=http://user-service:8082
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  smtp-service:
+    image: artamonovdima/smtp:latest
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/mail-db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=mailbox
+      - USER_SERVICE_URL=http://user-service:8082
+      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+      - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_BUCKET=${AWS_BUCKET}
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    image: artamonovdima/emailfront:deploy2
+    container_name: frontend
+    ports:
+      - "3000:80"
+    environment:
+      - BACKEND_URL=http://api-gateway:9090
+    depends_on:
+      - api-gateway

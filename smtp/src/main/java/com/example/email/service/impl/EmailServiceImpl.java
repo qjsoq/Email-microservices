@@ -5,10 +5,13 @@ import com.example.email.domain.MailBox;
 import com.example.email.exception.InvalidEmailDomainException;
 import com.example.email.exception.MailBoxAlreadyExistsException;
 import com.example.email.exception.MailboxNotFoundException;
+import com.example.email.exception.SendException;
 import com.example.email.exception.StrategyNotFoundException;
+import com.example.email.repository.EmailRepository;
 import com.example.email.repository.MailBoxRepository;
 import com.example.email.service.EmailService;
 import com.example.email.service.SendStrategy;
+import com.example.email.service.StorageService;
 import com.example.email.util.EmailConfiguration;
 import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
@@ -24,12 +27,16 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +44,8 @@ public class EmailServiceImpl implements EmailService {
     private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
     private static final JsonFactory JSON_FACTORY = new GsonFactory();
     private final MailBoxRepository mailBoxRepository;
+    private final StorageService storageService;
+    private final EmailRepository emailRepository;
     private final List<SendStrategy> listOfStrategies;
     @Value("${google-client.id}")
     private String googleClientId;
@@ -45,15 +54,36 @@ public class EmailServiceImpl implements EmailService {
     private String googleClientSecret;
     @Value("${google-client.callback-uri}")
     private String googleCallBackUri;
+    @Value("${bucket.name}")
+    private String bucket;
 
     private SendStrategy sendStrategy;
 
     @Override
-    public Email sendEmail(Email email, String login)
-            throws MessagingException, UnsupportedEncodingException {
+    public Email sendEmail(Email email, String login, MultipartFile file)
+            throws MessagingException, IOException {
         MailBox mailBox = findMailBox(email.getSenderEmail(), login);
         specifyStrategyByMailBox(mailBox);
-        return sendStrategy.sendWithStrategyEmail(email, mailBox);
+        var sentEmail = sendStrategy.sendWithStrategyEmail(email, mailBox, file);
+        if(file != null && !file.isEmpty()){
+            Tika tika = new Tika();
+            String detectedType = tika.detect(file.getBytes()).split("/")[1];
+            var fileKey = login + "/" + UUID.randomUUID().toString() + "." + detectedType;
+            try {
+                storageService.uploadFile(
+                        file.getBytes(),
+                        fileKey,
+                        bucket);
+                System.out.println("File uploaded successfully");
+            } catch (IOException e) {
+                var fileName = file.getOriginalFilename();
+                throw new SendException("Failed to upload file %s".formatted(fileName));
+            }
+            sentEmail.setImageKey(fileKey);
+        }
+        sentEmail.setUser(mailBox.getUser());
+        emailRepository.save(sentEmail);
+        return sentEmail;
     }
 
     @Override
@@ -118,8 +148,8 @@ public class EmailServiceImpl implements EmailService {
                 .orElseThrow(
                         () -> new InvalidEmailDomainException("Unsupported domain: " + domainPart));
     }
-
-    private String extractEmailDomain(String emailAddress) {
+    @Override
+    public String extractEmailDomain(String emailAddress) {
         Pattern pattern = Pattern.compile("(?<=@)[^.]+(?=\\.)");
         Matcher matcher = pattern.matcher(emailAddress);
         if (matcher.find()) {

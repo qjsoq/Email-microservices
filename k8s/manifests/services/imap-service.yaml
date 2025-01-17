@@ -26,6 +26,11 @@ spec:
                 configMapKeyRef:
                     key: USER_SERVICE_URL
                     name: common-config
+            - name: ENCRYPTION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: imap-secrets
+                  key: ENCRYPTION_SECRET
 ---
 apiVersion: v1
 kind: Service
@@ -45,3 +50,11 @@ metadata:
   name: imap-service-config
 data:
   SPRING_DATASOURCE_URL: "jdbc:mysql://mysql.default.svc.cluster.local:3306/mail-db"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: imap-secrets
+type: Opaque
+data:
+  ENCRYPTION_SECRET: dVFBeFlrOU9sS25IN2RHZlZKV0ZnVHdZVHI1OXZSSWdmMU8ybzEyS2JURT0=

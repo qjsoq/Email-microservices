@@ -1,15 +1,21 @@
 package com.example.imap.service.impl;
 
 
+import com.example.imap.domain.Email;
+import com.example.imap.domain.EmailAttachment;
 import com.example.imap.domain.MailBox;
 import com.example.imap.exception.InvalidEmailReaderException;
 import com.example.imap.exception.MoveFolderException;
 import com.example.imap.exception.PropertiesNotFoundException;
 import com.example.imap.exception.ReadException;
+import com.example.imap.repository.EmailRepository;
 import com.example.imap.repository.MailBoxRepository;
 import com.example.imap.service.ImapService;
 import com.example.imap.web.dto.DetailedReceivedEmail;
+import com.example.imap.web.dto.EmailDto;
 import com.example.imap.web.dto.MailBoxDto;
+import com.example.imap.web.dto.ReceivedEmail;
+import com.example.imap.web.mapper.EmailMapper;
 import jakarta.mail.Address;
 import jakarta.mail.BodyPart;
 import jakarta.mail.FetchProfile;
@@ -17,15 +23,18 @@ import jakarta.mail.Flags;
 import jakarta.mail.Folder;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.UIDFolder;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.search.ComparisonTerm;
 import jakarta.mail.search.ReceivedDateTerm;
 import jakarta.mail.search.SearchTerm;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -37,9 +46,11 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ImapServiceImpl implements ImapService {
+    private final EmailRepository emailRepository;
     private final List<Properties> listOfImapProperties;
     private final MailBoxRepository mailBoxRepository;
     private Properties imapProperties;
+    private final EmailMapper emailMapper;
 
     public static SearchTerm getMessagesSearchTerm() {
         Date yesterdayDate = new Date(new Date().getTime() - (1000L * 60 * 60 * 24 * 7));
@@ -110,23 +121,37 @@ public class ImapServiceImpl implements ImapService {
 
 
     @Override
-    public Message[] getEmails(String account, String folderName, String login) throws Exception {
-        isUserAllowedToReadEmail(login, account);
-        Store store = getImapStore(account, login);
-        Folder folder = getFolderFromStore(store, folderName, Folder.READ_ONLY);
-        int messageCount = folder.getMessageCount();
-        if (messageCount == 0) {
-            return new Message[0];
+    public ReceivedEmail[] getEmails(String account, String folderName, String login, int mailNum) throws Exception {
+        try{
+            isUserAllowedToReadEmail(login, account);
+            Store store = getImapStore(account, login);
+            Folder folder = getFolderFromStore(store, folderName, Folder.READ_ONLY);
+            int messageCount = folder.getMessageCount();
+            if (messageCount == 0) {
+                return new ReceivedEmail[0];
+            }
+            int start = Math.max(1, messageCount - mailNum);
+            Message[] messages = folder.getMessages(start, messageCount);
+            folder.fetch(messages, getFetchProfile());
+            closeFolder(folder);
+            closeStore(store);
+            return Arrays.stream(messages).map((temp) -> {
+                try {
+                    return emailMapper.toReceivedEmail(temp);
+                } catch (MessagingException e) {
+                    throw new RuntimeException(e);
+                }
+            }).toArray(ReceivedEmail[]::new);
+        } catch (Exception e) {
+            return getSavedEmails(login).stream()
+                    .map(emailMapper::toReceivedEmail)
+                    .toArray(com.example.imap.web.dto.ReceivedEmail[]::new);
         }
-        int start = Math.max(1, messageCount - 30);
-        Message[] messages = folder.getMessages(start, messageCount);
-        folder.fetch(messages, getFetchProfile());
-        closeFolder(folder);
-        closeStore(store);
-        return messages;
+
     }
 
-    private Message getEmail(String account, String folderName, int msgnum, String login)
+    @Override
+    public Message getEmail(String account, String folderName, int msgnum, String login)
             throws Exception {
         Store store = getImapStore(account, login);
         Folder folder = getFolderFromStore(store, folderName, Folder.READ_WRITE);
@@ -136,11 +161,12 @@ public class ImapServiceImpl implements ImapService {
     }
 
     @Override
-    public DetailedReceivedEmail getSpecificEmail(String account, String folderName, int msgnum,
-                                                  String login)
+    public DetailedReceivedEmail getSpecificEmail(String account, String folderName, int msgnum, String login)
             throws Exception {
         isUserAllowedToReadEmail(login, account);
         Message message = getEmail(account, folderName, msgnum, login);
+
+        // Extract sender email
         Address[] fromAddresses = message.getFrom();
         String senderEmail = null;
         if (fromAddresses != null && fromAddresses.length > 0) {
@@ -156,16 +182,39 @@ public class ImapServiceImpl implements ImapService {
         }
 
         String subject = message.getSubject();
-
         String body = getTextFromMessage(message);
+
+        List<EmailAttachment> attachments = getAttachmentMetadata(message);
+
         return DetailedReceivedEmail.builder()
                 .body(body)
                 .receiverEmail(receiverEmail)
                 .senderEmail(senderEmail)
                 .subject(subject)
                 .receivedDate(message.getReceivedDate())
+                .attachments(attachments)
                 .build();
     }
+
+    private List<EmailAttachment> getAttachmentMetadata(Message message) throws Exception {
+        List<EmailAttachment> attachments = new ArrayList<>();
+        if (message.getContent() instanceof MimeMultipart mimeMultipart) {
+            for (int i = 0; i < mimeMultipart.getCount(); i++) {
+                BodyPart bodyPart = mimeMultipart.getBodyPart(i);
+                if (Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) ||
+                        bodyPart.getFileName() != null) {
+                    MimeBodyPart mimeBodyPart = (MimeBodyPart) bodyPart;
+                    EmailAttachment attachment = new EmailAttachment();
+                    attachment.setFileName(mimeBodyPart.getFileName());
+                    attachment.setMimeType(mimeBodyPart.getContentType());
+                    attachment.setAttachmentId("attachment-" + i); // Generate a unique ID
+                    attachments.add(attachment);
+                }
+            }
+        }
+        return attachments;
+    }
+
 
     @Override
     public void moveEmail(String account, String sourceFolder, String destinationFolder,
@@ -235,6 +284,11 @@ public class ImapServiceImpl implements ImapService {
         return mailBoxDtos;
     }
 
+    @Override
+    public List<Email> getSavedEmails(String login) {
+        return emailRepository.findByUserLogin(login);
+    }
+
 
     private String getTextFromMessage(Message message) throws MessagingException, IOException {
         if (message.getContent() instanceof MimeMultipart mimeMultipart) {
@@ -271,4 +325,5 @@ public class ImapServiceImpl implements ImapService {
         }
         return result;
     }
+
 }

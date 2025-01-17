@@ -1,15 +1,8 @@
 package com.example.email.domain;
 
+import com.example.email.config.MailBoxListener;
 import com.example.email.util.EmailConfiguration;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,6 +10,7 @@ import lombok.Setter;
 @Table
 @Setter
 @Getter
+@EntityListeners(MailBoxListener.class)
 public class MailBox {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
